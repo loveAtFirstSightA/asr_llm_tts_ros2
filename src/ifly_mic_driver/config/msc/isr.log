@@ -1,0 +1,110 @@
+============================================================
+Time  2020/07/08 16:43:50 509 
+============================================================
+[2020/07/08 16:43:50 509] isr        1659 isr loaded!  
+[2020/07/08 16:43:50 509] isr        1642 SYS_MSG_REGCB param0 =   msp_status_cb  param1 =   func(98030200) 
+[2020/07/08 16:43:50 510] isr        1537 ASR_MSG_SSB  
+[2020/07/08 16:43:50 510] isr        1066 session_begin() [in], params:   asr_res_path=fo|../asr/common.jet,asr_threshold=50,audio_source=-1,engine_type=local,grm_build_path=AIUI/asr/grammar/main_box,local_grammar=main_box,request_audio_focus=0,result_type=json,sample_rate=16000,text_encoding=utf-8,vad_enable=0,  main_box  
+[2020/07/08 16:43:50 510] isr        927  vad_set [in]  
+[2020/07/08 16:43:50 510] isr        962  vad_enable :  false  
+[2020/07/08 16:43:50 510] isr        987  vad_set [out] | ret =  0  
+[2020/07/08 16:43:50 510] isr        1182 cur_engine_type =   local  
+[2020/07/08 16:43:50 511] isr        992  local_session_begin  
+[2020/07/08 16:43:50 520] isr        1642 SYS_MSG_REGCB param0 =   ResultCallBack  param1 =   func(98036440) 
+[2020/07/08 16:43:50 520] isr        1642 SYS_MSG_REGCB param0 =   StatusCallBack  param1 =   func(98036830) 
+[2020/07/08 16:43:50 520] isr        1642 SYS_MSG_REGCB param0 =   ErrorCallBack  param1 =   func(980368a0) 
+[2020/07/08 16:43:50 521] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:43:50 521] isr        1559 19200  2  
+[2020/07/08 16:43:50 521] isr        1569 once_bytes:   6400  
+[2020/07/08 16:43:50 521] isr        798  1  msc  
+[2020/07/08 16:43:50 522] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:43:50 522] isr        1559 1280  2  
+[2020/07/08 16:43:50 531] isr        723  local_cbmsg_handler  ,msg=  409  param1=  10102  
+[2020/07/08 16:43:50 531] isr        399  error occurred:   local  10102  
+[2020/07/08 16:43:50 532] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:43:50 532] isr        1559 0  4  
+[2020/07/08 16:43:50 532] isr        1592 aud end, USER  
+[2020/07/08 16:43:50 532] isr        798  3  msc  
+[2020/07/08 16:43:50 533] isr        1639 ASR_MSG_SSE,   local  
+[2020/07/08 16:43:50 533] isr        1356 session_end() [in]  
+[2020/07/08 16:43:50 534] isr        1377 local_session_end() [in]  
+[2020/07/08 16:43:50 535] isr        1416 ASR_LOCAL_MSG_SSE net_type  nil  
+[2020/07/08 16:43:50 536] isr        1667 isr unload!  
+============================================================
+Time  2020/07/08 16:44:04 165 
+============================================================
+[2020/07/08 16:44:04 165] isr        1659 isr loaded!  
+[2020/07/08 16:44:04 165] isr        1642 SYS_MSG_REGCB param0 =   msp_status_cb  param1 =   func(98038060) 
+[2020/07/08 16:44:04 166] isr        1537 ASR_MSG_SSB  
+[2020/07/08 16:44:04 166] isr        1066 session_begin() [in], params:   asr_res_path=fo|../asr/common.jet,asr_threshold=50,audio_source=-1,engine_type=local,grm_build_path=AIUI/asr/grammar/main_box,local_grammar=main_box,request_audio_focus=0,result_type=json,sample_rate=16000,text_encoding=utf-8,vad_enable=0,  main_box  
+[2020/07/08 16:44:04 166] isr        927  vad_set [in]  
+[2020/07/08 16:44:04 166] isr        962  vad_enable :  false  
+[2020/07/08 16:44:04 166] isr        987  vad_set [out] | ret =  0  
+[2020/07/08 16:44:04 167] isr        1182 cur_engine_type =   local  
+[2020/07/08 16:44:04 167] isr        992  local_session_begin  
+[2020/07/08 16:44:04 175] isr        1642 SYS_MSG_REGCB param0 =   ResultCallBack  param1 =   func(98036ce0) 
+[2020/07/08 16:44:04 175] isr        1642 SYS_MSG_REGCB param0 =   StatusCallBack  param1 =   func(98037020) 
+[2020/07/08 16:44:04 175] isr        1642 SYS_MSG_REGCB param0 =   ErrorCallBack  param1 =   func(98037090) 
+[2020/07/08 16:44:04 176] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:44:04 176] isr        1559 19200  2  
+[2020/07/08 16:44:04 176] isr        1569 once_bytes:   6400  
+[2020/07/08 16:44:04 176] isr        798  1  msc  
+[2020/07/08 16:44:04 177] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:44:04 177] isr        1559 1280  2  
+[2020/07/08 16:44:04 177] isr        723  local_cbmsg_handler  ,msg=  409  param1=  10102  
+[2020/07/08 16:44:04 178] isr        399  error occurred:   local  10102  
+[2020/07/08 16:44:04 179] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:44:04 179] isr        1559 0  4  
+[2020/07/08 16:44:04 179] isr        1592 aud end, USER  
+[2020/07/08 16:44:04 179] isr        798  3  msc  
+[2020/07/08 16:44:04 180] isr        1639 ASR_MSG_SSE,   local  
+[2020/07/08 16:44:04 180] isr        1356 session_end() [in]  
+[2020/07/08 16:44:04 180] isr        1377 local_session_end() [in]  
+[2020/07/08 16:44:04 182] isr        1416 ASR_LOCAL_MSG_SSE net_type  nil  
+[2020/07/08 16:44:04 183] isr        1667 isr unload!  
+============================================================
+Time  2020/07/08 16:46:08 225 
+============================================================
+[2020/07/08 16:46:08 225] isr        1659 isr loaded!  
+[2020/07/08 16:46:08 226] isr        1642 SYS_MSG_REGCB param0 =   msp_status_cb  param1 =   func(98131c50) 
+[2020/07/08 16:46:08 226] isr        1537 ASR_MSG_SSB  
+[2020/07/08 16:46:08 226] isr        1066 session_begin() [in], params:   asr_res_path=fo|../asr/common.jet,asr_threshold=50,audio_source=-1,engine_type=local,grm_build_path=AIUI/asr/grammar/main_box,local_grammar=main_box,request_audio_focus=0,result_type=json,sample_rate=16000,text_encoding=utf-8,vad_enable=0,  main_box  
+[2020/07/08 16:46:08 227] isr        927  vad_set [in]  
+[2020/07/08 16:46:08 227] isr        962  vad_enable :  false  
+[2020/07/08 16:46:08 227] isr        987  vad_set [out] | ret =  0  
+[2020/07/08 16:46:08 227] isr        1182 cur_engine_type =   local  
+[2020/07/08 16:46:08 227] isr        992  local_session_begin  
+[2020/07/08 16:46:08 232] isr        1642 SYS_MSG_REGCB param0 =   ResultCallBack  param1 =   func(981344a0) 
+[2020/07/08 16:46:08 234] isr        1642 SYS_MSG_REGCB param0 =   StatusCallBack  param1 =   func(98134870) 
+[2020/07/08 16:46:08 235] isr        1642 SYS_MSG_REGCB param0 =   ErrorCallBack  param1 =   func(981348e0) 
+[2020/07/08 16:46:08 235] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 236] isr        1559 6400  2  
+[2020/07/08 16:46:08 236] isr        1569 once_bytes:   6400  
+[2020/07/08 16:46:08 236] isr        798  1  msc  
+[2020/07/08 16:46:08 237] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 238] isr        1559 1280  2  
+[2020/07/08 16:46:08 238] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 238] isr        1559 1280  2  
+[2020/07/08 16:46:08 239] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 239] isr        1559 1280  2  
+[2020/07/08 16:46:08 239] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 239] isr        1559 1280  2  
+[2020/07/08 16:46:08 240] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 240] isr        1559 1280  2  
+[2020/07/08 16:46:08 240] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 241] isr        1559 1280  2  
+[2020/07/08 16:46:08 241] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 241] isr        1559 1280  2  
+[2020/07/08 16:46:08 242] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 242] isr        1559 1280  2  
+[2020/07/08 16:46:08 250] isr        723  local_cbmsg_handler  ,msg=  409  param1=  10102  
+[2020/07/08 16:46:08 250] isr        399  error occurred:   local  10102  
+[2020/07/08 16:46:08 251] isr        1547 ASR_MSG_AUW,   local  
+[2020/07/08 16:46:08 252] isr        1559 0  4  
+[2020/07/08 16:46:08 252] isr        1592 aud end, USER  
+[2020/07/08 16:46:08 252] isr        798  3  msc  
+[2020/07/08 16:46:08 253] isr        1639 ASR_MSG_SSE,   local  
+[2020/07/08 16:46:08 253] isr        1356 session_end() [in]  
+[2020/07/08 16:46:08 254] isr        1377 local_session_end() [in]  
+[2020/07/08 16:46:08 256] isr        1416 ASR_LOCAL_MSG_SSE net_type  nil  
+[2020/07/08 16:46:08 256] isr        1667 isr unload!  

@@ -1,0 +1,12 @@
+ifly_mic_driver:
+  ros__parameters:
+    # 录制文件路径
+    pcm_path: "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/vvui_deno.pcm"
+    # 唤醒词提示音
+    awake_prompt_voice_path: "/home/lio/asr_llm_tts_ros2/src/tts/resource/awake_voice.wav"
+    # 唤醒状态提示
+    awake_notice_voice_path: "/home/lio/asr_llm_tts_ros2/src/tts/resource/awake_hi.wav"
+    # 最大录音时长
+    record_duration: 60
+
+    
