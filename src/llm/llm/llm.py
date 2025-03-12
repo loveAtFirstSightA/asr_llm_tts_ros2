@@ -53,11 +53,19 @@ class LLM(Node):
         # command
         self.camera_publisher_ = self.create_publisher(String, 'camera_command', 10)
         self.arm_publisher_ = self.create_publisher(String, 'arm_command', 10)
+        # TODO 待调试
+        # interface
+        self.interface_publisher_ = self.create_publisher(String, 'interface_msg', 10)
 
     def asr_subscriber_callback(self, msg):
         logger.info('Received message asr result: %s' % msg.data) # Use loguru logger
         thread = threading.Thread(target=self.call_llm_service, args=(msg.data,))
         thread.start()
+        # TODO 待调试
+        interface_msgs = String()
+        interface_msgs = msg
+        logger.info('Publishing message to interface: %s' % interface_msgs.data)
+        self.interface_publisher_.publish(interface_msgs)
 
     def call_llm_service(self, asr_result):
         logger.info('Use LLM model type: %s' % self.llm_type_) # Use loguru logger

@@ -40,5 +40,10 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('vad'),
-                'launch', 'vad.launch.py')))
+                'launch', 'vad.launch.py'))),
+        
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('interface'),
+                'launch', 'interface.launch.py')))
     ])
