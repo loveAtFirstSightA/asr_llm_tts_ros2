@@ -15,10 +15,13 @@
  */
 
 
+#include <cstring>
+#include <string>
 #include <memory>
 #include <thread>
 #include <chrono>
 #include "rclcpp/rclcpp.hpp"
+#include "spdlog/spdlog.h"
 #include "ifly_mic_driver/ifly_mic_driver.hpp"
 
 // sdk
@@ -28,11 +31,33 @@
 // 操作系统文件
 #include <filesystem>
 
+// 录音文件名称
+std::string denoise_pcm_file_name_timestamp;
+std::string original_pcm_file_name_timestamp;
+
 int business_proc_callback(business_msg_t business_msg)
 {
 	int res = 0;
-	char fileName[] = DENOISE_SOUND_PATH;
-	char fileName_ori[] = ORIGINAL_SOUND_PATH;
+	// char fileName[] = DENOISE_SOUND_PATH;
+	// char fileName_ori[] = ORIGINAL_SOUND_PATH;
+
+	size_t denoise_filename_len = denoise_pcm_file_name_timestamp.length();
+    size_t original_filename_len = original_pcm_file_name_timestamp.length();
+
+    // 1. 声明固定大小的 char 数组 (需要预先确定最大长度，这里假设最大长度为 256，根据实际情况调整)
+    const size_t MAX_FILENAME_LENGTH = 256;
+    char fileName[MAX_FILENAME_LENGTH];
+    char fileName_ori[MAX_FILENAME_LENGTH];
+
+    // 2. 使用 strncpy 安全地复制 std::string 内容到 char 数组，并手动添加 null 终止符
+    strncpy(fileName, denoise_pcm_file_name_timestamp.c_str(), MAX_FILENAME_LENGTH - 1);
+    fileName[MAX_FILENAME_LENGTH - 1] = '\0'; // 确保 null 终止
+    strncpy(fileName_ori, original_pcm_file_name_timestamp.c_str(), MAX_FILENAME_LENGTH - 1);
+    fileName_ori[MAX_FILENAME_LENGTH - 1] = '\0'; // 确保 null 终止
+
+    // spdlog::info("Denoise file name (char[]): {}", fileName); // 可以使用 char* 打印 C 风格字符串
+    // spdlog::info("Original file name (char[]): {}", fileName_ori); // 可以使用 char* 打印 C 风格字符串
+
 	static int index = 0;
 	unsigned char buf[4096];
 	switch (business_msg.modId)
@@ -44,12 +69,23 @@ int business_proc_callback(business_msg_t business_msg)
 			int status = whether_set_succeed(business_msg.data, key);
 			if (status == 0)
 			{
-				//printf("\n>>>>>您已开启录音\n");
+				spdlog::info(">>>>您已开启录音");
 			}
 		}
 		else if (business_msg.msgId == 0x02)
 		{
-			char fileName[] = DENOISE_SOUND_PATH;
+			// char fileName[] = DENOISE_SOUND_PATH;
+			size_t denoise_filename_len = denoise_pcm_file_name_timestamp.length();
+
+			// 1. 声明固定大小的 char 数组 (需要预先确定最大长度，这里假设最大长度为 256，根据实际情况调整)
+			const size_t MAX_FILENAME_LENGTH = 256;
+			char fileName[MAX_FILENAME_LENGTH];
+
+			// 2. 使用 strncpy 安全地复制 std::string 内容到 char 数组，并手动添加 null 终止符
+			strncpy(fileName, denoise_pcm_file_name_timestamp.c_str(), MAX_FILENAME_LENGTH - 1);
+			fileName[MAX_FILENAME_LENGTH - 1] = '\0'; // 确保 null 终止
+
+			// spdlog::info("Denoise file name (char[]): {}", fileName); // 可以使用 char* 打印 C 风格字符串
 			get_denoised_sound(fileName, business_msg.data);
 		}
 		else if (business_msg.msgId == 0x03)
@@ -58,7 +94,7 @@ int business_proc_callback(business_msg_t business_msg)
 			int status = whether_set_succeed(business_msg.data, key);
 			if (status == 0)
 			{
-				//printf("\n>>>>>您已停止录音\n");
+				spdlog::info(">>>>您已停止录音");
 			}
 		}
 		else if (business_msg.msgId == 0x04)
@@ -67,7 +103,7 @@ int business_proc_callback(business_msg_t business_msg)
 			int status = whether_set_succeed(business_msg.data, key);
 			if (status == 0)
 			{
-				//printf("\n>>>>>开/关原始音频成功\n");
+				spdlog::info(">>>>开/关原始音频成功");
 			}
 		}
 		else if (business_msg.msgId == 0x05)
@@ -76,13 +112,25 @@ int business_proc_callback(business_msg_t business_msg)
 			int status = whether_set_succeed(business_msg.data, key);
 			if (status == 0)
 			{
-				printf("\n>>>>>设置主麦克风和灯光成功,升级版本不推荐使用\n");
+				spdlog::info(">>>>设置主麦克风和灯光成功,升级版本不推荐使用");
 			}
 		}
 		else if (business_msg.msgId == 0x06)
 		{
             // 通过修改ORIGINAL_SOUND_PATH可调整路径和文件名称
-			char fileName_ori[] = ORIGINAL_SOUND_PATH;
+			// char fileName_ori[] = ORIGINAL_SOUND_PATH;
+			// char fileName[] = DENOISE_SOUND_PATH;
+			size_t original_filename_len = original_pcm_file_name_timestamp.length();
+
+			// 1. 声明固定大小的 char 数组 (需要预先确定最大长度，这里假设最大长度为 256，根据实际情况调整)
+			const size_t MAX_FILENAME_LENGTH = 256;
+			char fileName_ori[MAX_FILENAME_LENGTH];
+
+			// 2. 使用 strncpy 安全地复制 std::string 内容到 char 数组，并手动添加 null 终止符
+			strncpy(fileName_ori, original_pcm_file_name_timestamp.c_str(), MAX_FILENAME_LENGTH - 1);
+			fileName_ori[MAX_FILENAME_LENGTH - 1] = '\0'; // 确保 null 终止
+
+			// spdlog::info("Denoise file name (char[]): {}", fileName); // 可以使用 char* 打印 C 风格字符串
 			get_original_sound(fileName_ori, business_msg.data);
 		}
 		else if (business_msg.msgId == 0x07)
@@ -221,13 +269,16 @@ void _set_awake(int status)
     if_awake = status;
 }
 
-void _start_to_record_denoised_sound(void)
+void _start_to_record_denoised_sound(std::string timestamp)
 {
-    // 清理旧文件
-    if (std::filesystem::exists(DENOISE_SOUND_PATH)) {
-        std::filesystem::remove(DENOISE_SOUND_PATH);
-        spdlog::info(">>>>删除历史文件: {}", DENOISE_SOUND_PATH);
-    }
+    // // 清理旧文件
+    // if (std::filesystem::exists(DENOISE_SOUND_PATH)) {
+    //     std::filesystem::remove(DENOISE_SOUND_PATH);
+    //     spdlog::info(">>>>删除历史文件: {}", DENOISE_SOUND_PATH);
+    // }
+	// 确定时间戳名称
+    denoise_pcm_file_name_timestamp = std::string(DENOISE_SOUND_PATH) + "_" + timestamp + ".pcm";
+	spdlog::info("denoise_pcm_file_name_timestamp: {}", denoise_pcm_file_name_timestamp);
     start_to_record_denoised_sound();
 }
 
@@ -236,13 +287,16 @@ void _finish_to_record_denoised_sound(void)
     finish_to_record_denoised_sound();
 }
 
-void _start_to_record_original_sound(void)
+void _start_to_record_original_sound(std::string timestamp)
 {
-    // 清理旧文件
-    if (std::filesystem::exists(ORIGINAL_SOUND_PATH)) {
-        std::filesystem::remove(ORIGINAL_SOUND_PATH);
-        spdlog::info(">>>>删除历史文件: {}", ORIGINAL_SOUND_PATH);
-    }
+    // // 清理旧文件
+    // if (std::filesystem::exists(ORIGINAL_SOUND_PATH)) {
+    //     std::filesystem::remove(ORIGINAL_SOUND_PATH);
+    //     spdlog::info(">>>>删除历史文件: {}", ORIGINAL_SOUND_PATH);
+    // }
+	// 确定时间戳名称
+    original_pcm_file_name_timestamp = std::string(ORIGINAL_SOUND_PATH) + "_" + timestamp + ".pcm";
+	spdlog::info("original_pcm_file_name_timestamp: {}", original_pcm_file_name_timestamp);
     start_to_record_original_sound();
 }
 
@@ -251,10 +305,10 @@ void _finish_to_record_original_sound(void)
     finish_to_record_original_sound();
 }
 
-void _start_to_record_denoised_original_sound(void)
+void _start_to_record_denoised_original_sound(std::string timestamp)
 {
-    _start_to_record_denoised_sound();
-    _start_to_record_original_sound();
+    _start_to_record_denoised_sound(timestamp);
+    _start_to_record_original_sound(timestamp);
 }
 
 void _finish_to_record_denoised_original_sound(void)
@@ -296,6 +350,16 @@ void _set_major_mic_id(int id)
 void _set_awake_word(const char *awake_words)
 {
 	set_awake_word(awake_words);
+}
+
+std::string _get_denoise_file_path(void)
+{
+	return denoise_pcm_file_name_timestamp;
+}
+
+std::string _get_orignal_file_path(void)
+{
+	return original_pcm_file_name_timestamp;
 }
 
 

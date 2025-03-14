@@ -32,8 +32,8 @@ char *GRM_FILE = (char*)"/config/call.bnf";					//构建离线识别语法网络
 
 
 //录音文件保存的地址,最好设置为绝对地址
-#define ORIGINAL_SOUND_PATH "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/vvui_ori.pcm"  
-#define DENOISE_SOUND_PATH "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/vvui_deno.pcm"
+#define ORIGINAL_SOUND_PATH "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/ori"  
+#define DENOISE_SOUND_PATH "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/deno"
 
 //资源文件存储地址
 #define SYSTEM_PATH "/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/tmp/system.tar"
@@ -43,11 +43,7 @@ char *GRM_FILE = (char*)"/config/call.bnf";					//构建离线识别语法网络
 char awake_words[30] = "你好小小"; //使用的唤醒词
 
 
-
 int whether_finised;
 struct speech_rec iat;
 UserData asr_data;
-
-
-
 

@@ -35,4 +35,9 @@ def generate_launch_description():
             executable='vad',
             # parameters=[{'/* param_name */': /* param_value */}],
             output='screen'),
+        Node(
+            package='vad',
+            executable='rtvad',
+            # parameters=[{'/* param_name */': /* param_value */}],
+            output='screen'),
     ])

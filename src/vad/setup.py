@@ -43,6 +43,7 @@ setup(
     entry_points={
         'console_scripts': [
             'vad = vad.vad:main',
+            'rtvad = vad.rtvad:main',
         ],
     },
 )

@@ -54,13 +54,13 @@ class VAD(Node):
         self.silence_threshold = 3.0
 
         self.vad = webrtcvad.Vad(self.vad_mode)
-        self._stop_requested = False
+        self.stop_requested_ = False
 
     def vad_command_subscriber_callback(self, msg):
         data = msg.data.strip()
         if data == 'stop_vad':
             logger.info('Received stop_vad command. Setting stop flag.')
-            self._stop_requested = True
+            self.stop_requested_ = True
             return
 
         pcm_file_path = data
@@ -71,12 +71,12 @@ class VAD(Node):
             logger.info(f"PCM file not yet created, waiting... ({wait_time:.1f}s)")
             time.sleep(0.5)
             wait_time += 0.5
-            if self._stop_requested:
+            if self.stop_requested_:
                 logger.info("Stop command received during waiting for PCM file.")
                 return
 
         if os.path.exists(pcm_file_path):
-            self._stop_requested = False
+            self.stop_requested_ = False
             self.start_detection(pcm_file_path)
         else:
             logger.error(f'PCM file still not found: {pcm_file_path}')
@@ -88,21 +88,21 @@ class VAD(Node):
         try:
             with open(pcm_file_path, 'rb') as f:
                 f.seek(0, os.SEEK_END)
-                while rclpy.ok() and not self._stop_requested:
+                while rclpy.ok() and not self.stop_requested_:
                     current_pos = f.tell()
                     frame = f.read(self.frame_size)
                     
-                    if self._stop_requested:
+                    if self.stop_requested_:
                         logger.info("Stop command received during detection.")
                         break
 
                     if len(frame) < self.frame_size:
                         for _ in range(int(self.frame_duration / 10)):
-                            if self._stop_requested:
+                            if self.stop_requested_:
                                 logger.info("Stop command received while waiting for data.")
                                 break
                             time.sleep(0.01)
-                        if self._stop_requested:
+                        if self.stop_requested_:
                             break
                         f.seek(current_pos)
                         continue

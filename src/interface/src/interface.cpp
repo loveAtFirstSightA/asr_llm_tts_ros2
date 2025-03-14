@@ -1,3 +1,19 @@
+/*
+ Copyright 2025 Author lio
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
 #include "interface/interface.hpp"
 #include <std_msgs/msg/string.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -58,7 +74,7 @@ void Interface::init_parameters()
 
     this->declare_parameter<std::string>("server_address", "127.0.0.1");
     server_address_ = this->get_parameter("server_address").get_value<std::string>();
-    spdlog::info("服务器地址: {}", server_address_);
+    spdlog::info("Socket 服务器地址: {}", server_address_);
 }
 
 void Interface::subscriber_callback(const std_msgs::msg::String::SharedPtr msg)
@@ -73,7 +89,7 @@ void Interface::send_message_to_server(const std::string &message)
 {
     // 检查连接是否有效
     if (!socket_->is_open()) {
-        spdlog::warn("连接断开，正在重连...");
+        spdlog::warn("目标端口 {} 连接断开，正在重连...", port_);
         reconnect();
     }
 
@@ -95,10 +111,10 @@ void Interface::connect_with_retry(boost::asio::ip::tcp::socket &socket, const b
     while (true) {
         socket.connect(endpoint, ec);
         if (!ec) {
-            spdlog::info("连接成功!");
+            spdlog::info("目标端口 {} 连接成功!", port_);
             break;
         } else {
-            spdlog::warn("连接失败: {}, 正在重试...", ec.message());
+            spdlog::warn("目标端口 {} 连接失败: {}, 正在重试...", port_, ec.message());
             std::this_thread::sleep_for(std::chrono::seconds(1));  // 等待 1 秒后重试
         }
     }
@@ -107,7 +123,7 @@ void Interface::connect_with_retry(boost::asio::ip::tcp::socket &socket, const b
 void Interface::reconnect()
 {
     // 重试连接
-    spdlog::info("尝试重新连接服务器...");
+    spdlog::info("尝试重新连接服务器... 目标端口 {}", port_);
     socket_->close();  // 关闭当前 socket
     socket_ = std::make_unique<boost::asio::ip::tcp::socket>(*io_context_);  // 创建新的 socket
     connect_with_retry(*socket_, server_endpoint_);  // 尝试重新连接
@@ -117,7 +133,7 @@ void Interface::check_connection_status()
 {
     // 定期检查连接状态，检测连接是否有效
     if (!socket_->is_open()) {
-        spdlog::warn("连接已断开，尝试重新连接...");
+        spdlog::warn("目标端口 {} 连接已断开，尝试重新连接...", port_);
         reconnect();
     } else {
         // 检查连接是否成功，发送一个小的请求以确认连接是否活跃
@@ -126,10 +142,10 @@ void Interface::check_connection_status()
         boost::asio::write(*socket_, boost::asio::buffer(data, 1), ec);
         
         if (ec) {
-            spdlog::warn("连接检查失败: {}", ec.message());
+            spdlog::warn("目标端口 {} 连接检查失败: {}",port_, ec.message());
             reconnect();
         } else {
-            spdlog::info("连接状态良好");
+            spdlog::info("目标端口 {} 连接状态良好", port_);
         }
     }
 }
