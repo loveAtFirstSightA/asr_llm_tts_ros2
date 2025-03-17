@@ -114,7 +114,8 @@ void Interface::connect_with_retry(boost::asio::ip::tcp::socket &socket, const b
             spdlog::info("目标端口 {} 连接成功!", port_);
             break;
         } else {
-            spdlog::warn("目标端口 {} 连接失败: {}, 正在重试...", port_, ec.message());
+            // TODO debug shield
+            // spdlog::warn("目标端口 {} 连接失败: {}, 正在重试...", port_, ec.message());
             std::this_thread::sleep_for(std::chrono::seconds(1));  // 等待 1 秒后重试
         }
     }
