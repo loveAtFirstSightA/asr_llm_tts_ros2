@@ -112,7 +112,7 @@ void IflyMicDriver::initialization_parameters()
     spdlog::info("awake_notice_voice_path_: {}", awake_notice_voice_path_);
     spdlog::info("sleep_notice_voice_path_: {}", sleep_notice_voice_path_);
     spdlog::info("interactive_mode_: {}", interactive_mode_);
-    spdlog::info("record_duration_: {}", record_duration_);
+    spdlog::info("record_duration_: {} s", record_duration_);
     spdlog::info("reawake_duration_: {} s", reawake_duration_);
     spdlog::info("pcm_mode_: {}", pcm_mode_);
 

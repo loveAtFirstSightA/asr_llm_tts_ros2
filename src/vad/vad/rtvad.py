@@ -3,7 +3,7 @@ import sys
 sys.path.append(f'/home/lio/miniconda3/envs/asr_llm_tts/lib/python3.10/site-packages')
 import os
 import time
-import logging
+from loguru import logger
 import collections
 import webrtcvad
 import rclpy
@@ -11,6 +11,15 @@ from rclpy.node import Node
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from std_msgs.msg import String  # 用于接收输入路径和发布语音段信息
+
+# 配置 loguru 输出到终端（不写入文件）
+logger.remove()
+logger.add(
+    sys.stdout,
+    format="[{time:YYYY-MM-DD HH:mm:ss.SSS}] [{level}] {message}",
+    level="INFO"
+)
+logger.info('正在使用 loguru 日志系统')
 
 class RealTimeVADNode(Node, FileSystemEventHandler):
     def __init__(self):
@@ -24,11 +33,7 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
         self.publisher_ = self.create_publisher(String, 'pcm_file', 10)
         
         # 创建一个订阅者，用于接收输入路径
-        self.subscription = self.create_subscription(
-            String,
-            'rt_vad_path',
-            self.listener_callback,
-            10)
+        self.subscription = self.create_subscription(String, 'rt_vad_path', self.listener_callback, 10)
         self.subscription  # prevent unused variable warning
 
         # 初始化文件观察者
@@ -52,7 +57,7 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
     def listener_callback(self, msg):
         """接收输入路径的回调函数"""
         input_path = msg.data
-        self.get_logger().info(f"收到新的输入路径: {input_path}")
+        logger.info(f"收到新的输入路径: {input_path}")
         
         # 如果已经存在旧的观察者，先停止它
         if self.observer.is_alive():
@@ -64,7 +69,7 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
         self._init_processing_state()
         self.observer.schedule(self, path=os.path.dirname(input_path))
         self.observer.start()
-        self.get_logger().info(f"开始监控音频文件: {input_path}")
+        logger.info(f"开始监控音频文件: {input_path}")
 
     def _init_processing_state(self):
         """初始化处理状态"""
@@ -81,12 +86,12 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
             try:
                 self._process_new_data()
             except Exception as e:
-                self.get_logger().error(f"处理数据时发生错误: {str(e)}")
+                logger.error(f"处理数据时发生错误: {str(e)}")
 
     def on_created(self, event):
         """处理文件新建事件（应对文件轮转）"""
         if event.src_path == self.input_path:
-            self.get_logger().info("检测到新文件，重置处理状态")
+            logger.info("检测到新文件，重置处理状态")
             self._init_processing_state()
 
     def _process_new_data(self):
@@ -146,7 +151,7 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
             'silence_frames': 0,
             'duration': self.frame_duration
         }
-        self.get_logger().info(f"检测到语音开始 @ {time.ctime()}")
+        logger.info(f"检测到语音开始 @ {time.ctime()}")
 
     def _finalize_segment(self):
         """完成当前语音段"""
@@ -159,17 +164,16 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
                 with open(output_path, 'wb') as f:
                     for frame in self.active_segment['frames']:
                         f.write(frame)
-                
                 # 发布语音段信息
                 msg = String()
                 # msg.data = f"NEW_SEGMENT|{os.path.abspath(output_path)}|{self.active_segment['duration']}ms"
                 msg.data = f"{os.path.abspath(output_path)}"
                 self.publisher_.publish(msg)
-                self.get_logger().info(f"生成语音段: {os.path.abspath(output_path)} "
+                logger.info(f"生成语音段: {os.path.abspath(output_path)} "
                                        f"时长: {self.active_segment['duration']}ms")
                 
             except IOError as e:
-                self.get_logger().error(f"文件写入失败: {str(e)}")
+                logger.error(f"文件写入失败: {str(e)}")
             
             self.active_segment = None
 
@@ -177,7 +181,7 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
         """关闭处理器"""
         self.observer.stop()
         self.observer.join()
-        self.get_logger().info("VAD处理器已关闭")
+        logger.info("VAD处理器已关闭")
 
 def main(args=None):
     rclpy.init(args=args)

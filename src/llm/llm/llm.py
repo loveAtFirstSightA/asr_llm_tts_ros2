@@ -107,8 +107,8 @@ class LLM(Node):
     def deepseak(self, prompt='你好，你是谁？'):
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
-        # response = ollama.chat(model='deepseek-r1:14b', messages=[
-        response = ollama.chat(model='deepseek-r1:8b', messages=[
+        response = ollama.chat(model='deepseek-r1:14b', messages=[
+        # response = ollama.chat(model='deepseek-r1:8b', messages=[
             {
                 'role': 'user',
                 'content': content,

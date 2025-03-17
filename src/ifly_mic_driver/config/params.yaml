@@ -10,8 +10,9 @@ ifly_mic_driver:
     sleep_notice_voice_path: "/home/lio/asr_llm_tts_ros2/src/tts/resource/info_sleep.wav"
     # 对话模式 
     # 单次对话模式 一次唤醒一次对话 最长对话60s 进入睡眠
-    # 多次对话模式 一次唤醒多次对话 默音超过300s 进入睡眠 
-    interactive_mode: single    # single or multiple
+    # 多次对话模式 一次唤醒多次对话 默音超过300s 进入睡眠
+    interactive_mode: single    # single or multiple 
+    # interactive_mode: multiple    # single or multiple
     # 录制音频的格式
     pcm_mode: denoise # denoise or original  or both
     # 最大录音时长 x秒（s）
