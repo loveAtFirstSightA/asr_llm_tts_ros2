@@ -32,6 +32,7 @@ import time
 from loguru import logger
 import re
 import ast
+from openai import OpenAI
 from llm.sys_prompt import AGENT_SYS_PROMPT
 
 # Configure loguru output
@@ -71,41 +72,28 @@ class LLM(Node):
 
     def call_llm_service(self, asr_result):
         logger.info('Use LLM model type: %s' % self.llm_type_) # Use loguru logger
+        # ollama 本机部署模型
         if self.llm_type_ == 'deepseak':
             LLM_result = self.deepseak(asr_result)
+            
+        # 调用官方api接口
+        elif self.llm_type_ == 'deepseak_official':
+            LLM_result = self.deepseak_official(asr_result)
+            
+        # 调用丰巢本地部署接口
+        elif self.llm_type_ == 'deepseak_hivebox':
+            LLM_result = self.deepseak_hivebox(asr_result)
+            
         elif self.llm_type_ == 'google':
             LLM_result = self.google_gemini(asr_result)
+            
         elif self.llm_type_ == 'baidu':
             LLM_result = self.baidu_qianfan(asr_result)
+            
         logger.info('LLM result: %s' % LLM_result) # Use loguru logger
         parsed_result = self.parse_llm_result_json(LLM_result)
         logger.info('LLM parsed_result: %s ' % parsed_result) # Use loguru logger
-
-        # if parsed_result:
-        #     # 可以像字典一样访问解析后的 JSON 对象
-        #     if "function" in parsed_result:
-        #         logger.info("\nFunctions:")
-        #         for func_name_with_params in parsed_result["function"]: # 修改变量名，更清晰
-        #             # 分割函数名，只保留函数名本身，去除括号和参数
-        #             func_name = func_name_with_params.split('(')[0]
-        #             logger.info(f"- {func_name}")
-        #             # 动态调用解析出的函数
-        #             if hasattr(self, func_name):
-        #                 func = getattr(self, func_name)
-        #                 func()
-        #             else:
-        #                 logger.warning(f"Warning: Function '{func_name}' not found in self.")
-
-        #     if "response" in parsed_result:
-        #         logger.info(f"Response: {parsed_result['response']}")
-        #         # publish tts
-        #         msg = String()
-        #         logger.info('Publishing message tts: %s' % parsed_result['response']) # Use loguru logger
-        #         msg.data = parsed_result['response']
-        #         self.llm_publisher_.publish(msg)
-        # else:
-        #     logger.info("无法解析 JSON 或未找到 JSON 标记。")
-
+        
         if parsed_result:
             # 访问解析后的 JSON 对象
             if "function" in parsed_result:
@@ -148,6 +136,7 @@ class LLM(Node):
             logger.info("无法解析 JSON 或未找到 JSON 标记。")
 
     def deepseak(self, prompt='你好，你是谁？'):
+        logger.info("当前模型类型是： deepseak")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
         response = ollama.chat(model='deepseek-r1:14b', messages=[
@@ -172,7 +161,34 @@ class LLM(Node):
         else:
             logger.info('未找到关键词 </think>') # 打印未找到关键词的提示，用于调试
             return response_content # 修改: 如果未找到关键词，返回原始的 response 内容, 而不是 None
+    
+    def deepseak_official(self, prompt='你好，你是谁？'):
+        logger.info("当前模型类型是： deepseak_official")
+        content = AGENT_SYS_PROMPT + prompt
+        logger.info('contents: %s' % content)
+        client = OpenAI(api_key="sk-3c928ce7ca3645a68f0c91f734682460", base_url="https://api.deepseek.com")
+        messages = [{"role": "system", "content": AGENT_SYS_PROMPT},
+                    {"role": "user", "content": prompt}]
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages,
+            response_format={
+                'type': 'json_object'
+            }
+        )
+        # print(json.loads(response.choices[0].message.content))
+        # 使用 json.dumps 将 Python 字典转换为 JSON 字符串，并指定 ensure_ascii=False 以支持中文
+        json_data = json.dumps(json.loads(response.choices[0].message.content), ensure_ascii=False)
+        print(json_data)
+        return json_data
+    
+    def deepseak_hivebox(self, prompt='你好，你是谁？'):
+        logger.info("当前模型类型是： deepseak_official")
+        content = AGENT_SYS_PROMPT + prompt
+        logger.info('contents: %s' % content)
+        
 
+            
     def parse_llm_result_json(self, llm_result):
         llm_result = str(llm_result)
 
@@ -218,6 +234,9 @@ class LLM(Node):
             "app_id": app_id
         }, ensure_ascii=False)
         conversation_response = requests.request("POST", conversation_url, headers=headers, data=conversation_payload.encode("utf-8"))
+        
+        # 打印 conversation 请求的反馈
+        print("conversation response:", conversation_response.text)
 
         # 尝试从 conversation 接口的响应中提取 conversation_id
         try:
@@ -225,10 +244,10 @@ class LLM(Node):
             conversation_id = conversation_data.get("conversation_id")
             if not conversation_id:
                 logger.warning("Warning: conversation_id not found in conversation API response.")
-                conversation_id = "default_conversation_id" # 使用默认值或根据需要处理
+                conversation_id = "default_conversation_id"  # 使用默认值或根据需要处理
         except json.JSONDecodeError:
             logger.error("Error: Could not decode JSON response from conversation API.")
-            conversation_id = "default_conversation_id" # 使用默认值或根据需要处理
+            conversation_id = "default_conversation_id"  # 使用默认值或根据需要处理
 
         # 步骤 2: 调用 conversation/runs 接口发送 prompt 查询
         runs_url = "https://qianfan.baidubce.com/v2/app/conversation/runs"
@@ -240,9 +259,40 @@ class LLM(Node):
         }, ensure_ascii=False)
 
         runs_response = requests.request("POST", runs_url, headers=headers, data=runs_payload.encode("utf-8"))
+        
+        # 打印 runs 请求的反馈
+        logger.info("runs response: %s" % runs_response.text)
+        
+        try:
+            # 解析 runs_response 的 JSON 数据
+            response_data = json.loads(runs_response.text)
+        except json.JSONDecodeError as e:
+            print("无法解析 runs_response 的 JSON 数据:", e)
+            return None
 
-        return runs_response.text
+        # 获取 answer 字段，该字段中包含以 ```json 开头的 JSON 字符串
+        answer_str = response_data.get("answer", "")
+        if not answer_str:
+            print("未找到 answer 字段")
+            return None
 
+        # 使用正则表达式提取 ```json 和 ``` 中间的部分
+        match = re.search(r"```json\n(.*?)\n```", answer_str, re.DOTALL)
+        if match:
+            json_block = match.group(1)
+            try:
+                extracted_data = json.loads(json_block)
+                extracted_data_str = json.dumps(extracted_data, ensure_ascii=False)
+
+                logger.info(extracted_data_str)
+                return extracted_data_str
+            except json.JSONDecodeError as e:
+                print("提取的 JSON 数据解析失败:", e)
+                return None
+        else:
+            print("未能匹配到正确的 JSON 格式")
+            return None
+        
     def utils_sleep(self, second):
         time.sleep(second)
         logger.info("Executing utils_sleep(%ss)" % second)

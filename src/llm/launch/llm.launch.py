@@ -33,6 +33,7 @@ def generate_launch_description():
         Node(
             package='llm',
             executable='llm',
-            parameters=[{'llm_type': 'deepseak'}], # deepseak || google || baidu
+            # deepseak || deepseak_official || deepseak_hivebox || google || baidu
+            parameters=[{'llm_type': 'deepseak'}],
             output='screen')
     ])
