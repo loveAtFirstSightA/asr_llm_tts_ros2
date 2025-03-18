@@ -2,3 +2,7 @@ build/
 install/
 log/
 src/ifly_mic_driver/audio/
+
+photo.jpg
+output.wav
+
