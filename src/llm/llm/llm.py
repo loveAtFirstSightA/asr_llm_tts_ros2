@@ -30,6 +30,8 @@ from google import genai
 import json
 import time
 from loguru import logger
+import re
+import ast
 from llm.sys_prompt import AGENT_SYS_PROMPT
 
 # Configure loguru output
@@ -79,27 +81,68 @@ class LLM(Node):
         parsed_result = self.parse_llm_result_json(LLM_result)
         logger.info('LLM parsed_result: %s ' % parsed_result) # Use loguru logger
 
+        # if parsed_result:
+        #     # 可以像字典一样访问解析后的 JSON 对象
+        #     if "function" in parsed_result:
+        #         logger.info("\nFunctions:")
+        #         for func_name_with_params in parsed_result["function"]: # 修改变量名，更清晰
+        #             # 分割函数名，只保留函数名本身，去除括号和参数
+        #             func_name = func_name_with_params.split('(')[0]
+        #             logger.info(f"- {func_name}")
+        #             # 动态调用解析出的函数
+        #             if hasattr(self, func_name):
+        #                 func = getattr(self, func_name)
+        #                 func()
+        #             else:
+        #                 logger.warning(f"Warning: Function '{func_name}' not found in self.")
+
+        #     if "response" in parsed_result:
+        #         logger.info(f"Response: {parsed_result['response']}")
+        #         # publish tts
+        #         msg = String()
+        #         logger.info('Publishing message tts: %s' % parsed_result['response']) # Use loguru logger
+        #         msg.data = parsed_result['response']
+        #         self.llm_publisher_.publish(msg)
+        # else:
+        #     logger.info("无法解析 JSON 或未找到 JSON 标记。")
+
         if parsed_result:
-            # 可以像字典一样访问解析后的 JSON 对象
+            # 访问解析后的 JSON 对象
             if "function" in parsed_result:
                 logger.info("\nFunctions:")
-                for func_name_with_params in parsed_result["function"]: # 修改变量名，更清晰
-                    # 分割函数名，只保留函数名本身，去除括号和参数
-                    func_name = func_name_with_params.split('(')[0]
-                    logger.info(f"- {func_name}")
-                    # 动态调用解析出的函数
-                    if hasattr(self, func_name):
-                        func = getattr(self, func_name)
-                        func()
+                for func_call in parsed_result["function"]:
+                    # 正则匹配函数名和参数
+                    match = re.match(r'^(\w+)\((.*)\)$', func_call.strip())
+                    if match:
+                        func_name = match.group(1)
+                        args_str = match.group(2)
+                        args = []
+                        if args_str:
+                            try:
+                                # 将参数转换为 Python 对象
+                                parsed_args = ast.literal_eval(f'({args_str})')
+                                args = list(parsed_args) if isinstance(parsed_args, tuple) else [parsed_args]
+                            except (SyntaxError, ValueError) as e:
+                                logger.error(f"参数解析失败: '{args_str}' - {e}")
+                                continue
                     else:
-                        logger.warning(f"Warning: Function '{func_name}' not found in self.")
+                        func_name = func_call.strip()
+                        args = []
+                    
+                    logger.info(f"- {func_name}({', '.join(map(str, args))})")
+                    if hasattr(self, func_name):
+                        try:
+                            getattr(self, func_name)(*args)
+                        except Exception as e:
+                            logger.error(f"调用 {func_name} 失败: {e}")
+                    else:
+                        logger.warning(f"函数未找到: '{func_name}'")
 
             if "response" in parsed_result:
                 logger.info(f"Response: {parsed_result['response']}")
-                # publish tts
                 msg = String()
-                logger.info('Publishing message tts: %s' % parsed_result['response']) # Use loguru logger
                 msg.data = parsed_result['response']
+                logger.info(f'发布 tts 消息: {msg.data}')
                 self.llm_publisher_.publish(msg)
         else:
             logger.info("无法解析 JSON 或未找到 JSON 标记。")
@@ -200,9 +243,9 @@ class LLM(Node):
 
         return runs_response.text
 
-    def utils_sleep(self):
-        time.sleep(3)
-        logger.info("Executing utils_sleep()")
+    def utils_sleep(self, second):
+        time.sleep(second)
+        logger.info("Executing utils_sleep(%ss)" % second)
 
     def utils_camera(self):
         msg = String()
@@ -211,6 +254,15 @@ class LLM(Node):
         self.camera_publisher_.publish(msg)
         logger.info("Executing utils_camera() - 拍摄一张图片")
         # 这里添加拍摄图片的具体代码，例如调用摄像头 ROS2 Action/Service
+    
+    def utils_go_ahead(self, meters):
+        logger.info("Executing utils_go_ahead(%sm)" % meters)
+        
+    def utils_back(self, meters):
+        logger.info("Executing utils_back(%sm)" % meters)
+        
+    def utils_rotate(self, degree):
+        logger.info("Executing utils_rotate(%sdegree)" % degree)
 
     def utils_set_arm_zero(self):
         msg = String()
@@ -235,6 +287,9 @@ class LLM(Node):
         self.arm_publisher_.publish(msg)
         logger.info("Executing utils_set_arm_rest() - 机械臂回到休息位置")
         # 这里添加机械臂回到休息位置的具体代码，例如调用机械臂控制 ROS2 Action/Service
+    
+    def utils_stacking_towels(self):
+        logger.info("Executing utils_stacking_towels()")
 
 def main(args=None):
     rclpy.init(args=args)
