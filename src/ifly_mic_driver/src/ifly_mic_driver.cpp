@@ -50,15 +50,16 @@ IflyMicDriver::IflyMicDriver() : Node("ifly_mic_driver")
 {
     // 参数初始化
     initialization_parameters();
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(500), std::bind(&IflyMicDriver::timer_callback, this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&IflyMicDriver::timer_callback, this));
     feedback_publisher_ = this->create_publisher<std_msgs::msg::String>("file_to_tts", 10);
     pcm_publisher_ = this->create_publisher<std_msgs::msg::String>("pcm_file", 10);
     vad_command_publisher_ = this->create_publisher<std_msgs::msg::String>("vad_command", 10);
     vad_result_subscriber_ = this->create_subscription<std_msgs::msg::String>(
         "vad_result", 10, std::bind(&IflyMicDriver::vad_result_subscriber_callback, this, std::placeholders::_1));
-    
-    // TODO
+    // real time publisher
     rt_vad_publisher_ = this->create_publisher<std_msgs::msg::String>("rt_vad_path", 10);
+    // task_number with voice
+    task_number_publisher_ = this->create_publisher<std_msgs::msg::Int64>("task_number", 10);
 
     // 发布唤醒提示语音路径
     feedback_file_publisher(awake_prompt_voice_path_, 3);
@@ -116,8 +117,8 @@ void IflyMicDriver::initialization_parameters()
     spdlog::info("reawake_duration_: {} s", reawake_duration_);
     spdlog::info("pcm_mode_: {}", pcm_mode_);
 
-    single_count_max_ = (int)(record_duration_ * 1000 / 500);
-    sleep_countdown_ = (int)(reawake_duration_ * 1000 / 500);
+    single_count_max_ = (int)(record_duration_ * 1000 / 100);
+    sleep_countdown_ = (int)(reawake_duration_ * 1000 / 100);
     spdlog::info("single_count_max_: {}", single_count_max_);
     spdlog::info("sleep_countdown_: {}", sleep_countdown_);
 }
@@ -127,6 +128,13 @@ void IflyMicDriver::timer_callback()
     if (interactive_mode_ == "single") {
         if (_get_awake()) {
             if (!get_record_status()) {
+                // 发布任务编码
+                send_task_number();
+                // 停止当前录音和VAD
+                if (get_record_status()) {
+                    stop_record();
+                    stop_vad();
+                }
                 start_record(get_current_time());
                 // 启动vad检测
                 start_vad(_get_denoise_file_path());
@@ -244,6 +252,16 @@ void IflyMicDriver::feedback_file_publisher(const std::string file_path, const i
     spdlog::info("Publishing message feedback notice: {}", msg.data);
     feedback_publisher_->publish(msg);
     sleep(delay_time);
+}
+
+void IflyMicDriver::send_task_number()
+{
+    // 任务编码 1， 2， 3
+    task_number_ ++;
+    auto msg = std_msgs::msg::Int64();
+    msg.data = task_number_;
+    spdlog::info("Publishing message task number: %d", msg.data);
+    task_number_publisher_->publish(msg);
 }
 
 

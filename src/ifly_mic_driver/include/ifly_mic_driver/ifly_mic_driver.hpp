@@ -22,6 +22,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "spdlog/spdlog.h"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/int64.hpp"
 
 namespace ifly_mic_driver
 {
@@ -44,6 +45,7 @@ private:
     void feedback_file_publisher(const std::string file_path, const int delay_time);
     void start_vad(const std::string path);
     void stop_vad();
+    void send_task_number();
     
     rclcpp::TimerBase::SharedPtr timer_;
     // feedback
@@ -53,9 +55,11 @@ private:
     // vad
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr vad_command_publisher_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr vad_result_subscriber_;
-
-    // TODO
+    // read time vad
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr rt_vad_publisher_;
+    // task_number function
+    rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr task_number_publisher_;
+    
     // parameters
     std::string pcm_path_;
     // 唤醒词提示
@@ -73,6 +77,7 @@ private:
     int timer_cnt_{0};
     // 计时器 进入休眠状态
     int sleep_countdown_;
+    int task_number_{0};
 };
 }  // namespace ifly_mic_driver
 #endif  // IFLY_MIC_DRIVER__IFLY_MIC_DRIVER_HPP_

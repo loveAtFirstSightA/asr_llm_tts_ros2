@@ -25,6 +25,7 @@ import requests
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_msgs.msg import Int64
 import ollama
 from google import genai
 import json
@@ -49,6 +50,10 @@ class LLM(Node):
 
     def __init__(self):
         super().__init__('llm')
+        self.task_number_subscriber_ = self.create_subscription(
+            Int64, 'task_number', self.task_number_subscriber_callback, 10)
+        self.task_number_ = 0
+        self.task_count_ = 0
         self.asr_subscriber_ = self.create_subscription(
             String, 'asr_result', self.asr_subscriber_callback, 10)
         self.llm_publisher_ = self.create_publisher(String, 'text_to_tts', 10)
@@ -66,8 +71,13 @@ class LLM(Node):
         self.mini_nlp_ = False
         # 声明NLP预处理词组
         self.action_noun_phrases_stack_towel = ["叠毛巾", "叠", "毛巾"]
+    
+    def task_number_subscriber_callback(self, msg):
+        logger.info('Received task_number message: %d' % msg.data)
+        self.task_number_ = msg.data
 
     def asr_subscriber_callback(self, msg):
+        self.task_count_ = self.task_count_ + 1
         logger.info('Received message asr result: %s' % msg.data)
         # NLP预处理 动作名词关键字搜索 
         if msg.data:
@@ -397,6 +407,14 @@ class LLM(Node):
         # 这里添加机械臂回到休息位置的具体代码，例如调用机械臂控制 ROS2 Action/Service
     
     def utils_stack_towel(self):
+        # 任务编码验证
+        if self.task_count_ != self.task_number_:
+            logger.warning('检测到任务编码不一致，返回')
+            # info
+            if self.mini_nlp_:
+                logger.info('mini_nlp识别成功，此处返回')
+                self.mini_nlp_ = False
+            return
         if self.mini_nlp_:
             logger.info('mini_nlp识别成功，此处返回')
             self.mini_nlp_ = False

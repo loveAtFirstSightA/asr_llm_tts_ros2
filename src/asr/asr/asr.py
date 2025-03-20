@@ -54,7 +54,7 @@ class ASR(Node):
         self.ifly_apisecret_ = self.declare_parameter('ifly_apisecret', 'ifly_apisecret').value
 
         logger.info(f"ASR node initialized with service_provider: {self.service_provider_}")
-
+    
     def pcm_subscriber_callback(self, msg: String):
         logger.info(f"Received pcm_file message: {msg.data}")
         # 使用 threading.Thread 来创建子线程，设置为守护线程

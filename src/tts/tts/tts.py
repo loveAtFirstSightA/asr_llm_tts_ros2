@@ -25,6 +25,7 @@ import threading
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_msgs.msg import Int64
 import requests
 from playsound import playsound
 import websocket
@@ -130,9 +131,9 @@ def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.w
                 # Remove existing file if present
                 if os.path.exists(output_file):
                     os.remove(output_file)
-                    logger.info(f"Removed existing file: {output_file}") # Use loguru logger
+                    logger.info(f"Removed existing file: {output_file}")
             except Exception as e:
-                logger.error(f"Error sending data via websocket: {e}") # Use loguru logger
+                logger.error(f"Error sending data via websocket: {e}")
         threading.Thread(target=run, daemon=True).start()
 
     def on_message(ws, message):
@@ -147,18 +148,18 @@ def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.w
                 ws.close()
             if code != 0:
                 errMsg = message_json.get("message", "")
-                logger.error(f"sid:{sid} call error: {errMsg} code: {code}") # Use loguru logger
+                logger.error(f"sid:{sid} call error: {errMsg} code: {code}")
             else:
                 with open(output_file, 'ab') as f:
                     f.write(audio)
         except Exception as e:
-            logger.error(f"Error processing websocket message: {e}") # Use loguru logger
+            logger.error(f"Error processing websocket message: {e}")
 
     def on_error(ws, error):
-        logger.error(f"WebSocket error: {error}") # Use loguru logger
+        logger.error(f"WebSocket error: {error}")
 
     def on_close(ws, close_status_code, close_msg):
-        logger.info("WebSocket closed") # Use loguru logger
+        logger.info("WebSocket closed")
 
     ws_app = websocket.WebSocketApp(
         ws_url,
@@ -171,7 +172,7 @@ def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.w
     try:
         playsound(output_file)
     except Exception as e:
-        logger.error(f"Error playing sound file {output_file}: {e}") # Use loguru logger
+        logger.error(f"Error playing sound file {output_file}: {e}")
 
 class TTS(Node):
     """
@@ -182,6 +183,10 @@ class TTS(Node):
         # Create subscribers for audio file and text messages
         self.create_subscription(String, 'file_to_tts', self.file_subscriber_callback, 10)
         self.create_subscription(String, 'text_to_tts', self.text_subscriber_callback, 10)
+        self.task_number_subscriber_ = self.create_subscription(
+            Int64, 'task_number', self.task_number_subscriber_callback, 10)
+        self.task_number_ = 0
+        self.task_count_ = 0
         self.declare_parameter('service_provider', '1234')
         self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
         self.declare_parameter('baidu_api_key', '1234')
@@ -201,24 +206,28 @@ class TTS(Node):
         logger.info('ifly_appid %s' % self.ifly_appid_)
         logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
         logger.info('ifly_api_key %s' % self.ifly_api_key_)
-
-        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}") # Use loguru logger
+        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")
+    
+    def task_number_subscriber_callback(self, msg):
+        logger.info('Received task_number message: %d' % msg.data)
+        self.task_number_ = msg.data
 
     def file_subscriber_callback(self, msg):
-        logger.info(f"Received file message: {msg.data}") # Use loguru logger
+        logger.info(f"Received file message: {msg.data}")
         self.play_audio_async(msg.data)
 
     def text_subscriber_callback(self, msg):
+        self.task_count_ = self.task_count_ + 1
         output_file = './output.wav'
         # Remove existing audio file if exists
         if os.path.exists(output_file):
             try:
                 os.remove(output_file)
-                logger.info(f"Removed existing file: {output_file}") # Use loguru logger
+                logger.info(f"Removed existing file: {output_file}")
             except Exception as e:
-                logger.error(f"Error removing file {output_file}: {e}") # Use loguru logger
+                logger.error(f"Error removing file {output_file}: {e}")
 
-        logger.info(f"Received text message: {msg.data}") # Use loguru logger
+        logger.info(f"Received text message: {msg.data}")
         # Call the appropriate TTS service in a separate thread
         if self.service_provider_.lower() == 'baidu':
             threading.Thread(target=self.baidu_text_to_speech, args=(msg.data, output_file), daemon=True).start()
@@ -229,15 +238,15 @@ class TTS(Node):
                 daemon=True
             ).start()
         else:
-            logger.error("Invalid service provider specified.") # Use loguru logger
+            logger.error("Invalid service provider specified.")
 
     def baidu_text_to_speech(self, text, output_file):
-        logger.info(f"Baidu TTS processing text: {text}") # Use loguru logger
+        logger.info(f"Baidu TTS processing text: {text}")
         url = "https://tsn.baidu.com/text2audio"
         try:
             access_token = self.get_access_token()
             if not access_token:
-                logger.error("Failed to obtain access token.") # Use loguru logger
+                logger.error("Failed to obtain access token.")
                 return
 
             params = {
@@ -260,12 +269,16 @@ class TTS(Node):
             if response.status_code == 200:
                 with open(output_file, "wb") as f:
                     f.write(response.content)
-                logger.info(f"Baidu TTS success, audio saved to {output_file}") # Use loguru logger
+                logger.info(f"Baidu TTS success, audio saved to {output_file}")
+                # 任务编码验证
+                if self.task_count_ != self.task_number_:
+                    logger.warning('检测到任务编码不一致，返回')
+                    return
                 self.play_audio_async(output_file)
             else:
-                logger.error(f"Baidu TTS failed: {response.text}") # Use loguru logger
+                logger.error(f"Baidu TTS failed: {response.text}")
         except Exception as e:
-            logger.error(f"Exception during Baidu TTS: {e}") # Use loguru logger
+            logger.error(f"Exception during Baidu TTS: {e}")
 
     def get_access_token(self):
         url = "https://aip.baidubce.com/oauth/2.0/token"
@@ -279,10 +292,10 @@ class TTS(Node):
             if response.status_code == 200:
                 return response.json().get("access_token", "")
             else:
-                logger.error(f"Failed to get access token: {response.text}") # Use loguru logger
+                logger.error(f"Failed to get access token: {response.text}")
                 return None
         except Exception as e:
-            logger.error(f"Exception during access token retrieval: {e}") # Use loguru logger
+            logger.error(f"Exception during access token retrieval: {e}")
             return None
 
     def play_audio_async(self, file_path):
@@ -295,7 +308,7 @@ class TTS(Node):
         try:
             playsound(file_path)
         except Exception as e:
-            logger.error(f"Error playing audio file {file_path}: {e}") # Use loguru logger
+            logger.error(f"Error playing audio file {file_path}: {e}")
 
 def main(args=None):
     rclpy.init(args=args)
@@ -303,7 +316,7 @@ def main(args=None):
     try:
         rclpy.spin(tts_node)
     except KeyboardInterrupt:
-        logger.info("TTS node interrupted by user.") # Use loguru logger
+        logger.info("TTS node interrupted by user.")
     finally:
         tts_node.destroy_node()
         rclpy.shutdown()
