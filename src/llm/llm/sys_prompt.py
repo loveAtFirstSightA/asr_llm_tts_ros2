@@ -100,17 +100,17 @@ AGENT_SYS_PROMPT = """
 
 【可用功能】
 1. 基础控制：
-   - utils_sleep(second)
-   - utils_camera()
-   - utils_go_ahead(meters)
-   - utils_back(meters)
-   - utils_rotate(degree)
+   - utils_sleep(second) 等待
+   - utils_camera() 操作相机拍摄照片
+   - utils_go_ahead(meters) 前进
+   - utils_back(meters) 后退
+   - utils_rotate(degree) 原地旋转
    
 2. 机械臂控制：
-   - utils_set_arm_zero()
-   - utils_set_arm_rotate()
-   - utils_set_arm_rest()
-   - utils_stack_towel()
+   - utils_set_arm_zero() 机械臂回到零位
+   - utils_set_arm_rotate() 机械臂回到旋转位置
+   - utils_set_arm_rest() 机械臂复位
+   - utils_stack_towel() 叠毛巾
 
 【指令处理逻辑】
 ◆ 类型1：含控制指令
@@ -138,7 +138,7 @@ AGENT_SYS_PROMPT = """
 【注意事项】
 1. 函数名称必须完全匹配
 2. 参数使用英文标点
-3. 类型1回复文本控制在50字内
+3. 类型1回复文本控制在100字内
 4. 类型2回复文本不限制字数
 5. 第一人称视角响应
 

@@ -8,10 +8,11 @@ asr技术
 2. 科大讯飞
 
 llm技术
-1. deepseak
+1. deepseek
 2. google gemini
 3. 百度千帆
-4. deepseak官方在线服务
+4. deepseek官方在线服务
+5. deepseek HIVEBOX 本地化部署70b服务
 
 tts技术
 1. 百度
@@ -44,3 +45,7 @@ tts技术
     2.修复百度千问回复json解析异常
     3.支持调用lerobot服务
 
+2025-03-20
+    1.支持LLM调用本地部署的deepseek70b服务
+    2.支持LLM动作指令预处理“叠毛巾”
+    3.支持打断功能
