@@ -33,12 +33,7 @@ def generate_launch_description():
         Node(
             package='tts',
             executable='tts',
-            # baidu || iflytec
-            parameters=[{'service_provider': 'baidu', # baidu ifly
-                         'baidu_api_key': 'yqapHe9IKnKZZdKIkvv0r7YQ',
-                         'baidu_secret_key': 'uWXoblwoT1YR5BZPoN3SUrttXfPxDm3I',
-                         'ifly_appid': '6f20e2c2',
-                         'ifly_api_secret': 'NzMwZTYwYTY0MWZkNjYyMGM0YjJjMjE4',
-                         'ifly_api_key': 'fc5fc33f5d17487a93263120e7c6d393'}],
-            output='screen'),
+            parameters=[os.path.join(get_package_share_directory('tts'),
+                'config', 'param.yaml')],
+            output='screen')
     ])

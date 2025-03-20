@@ -110,7 +110,7 @@ AGENT_SYS_PROMPT = """
    - utils_set_arm_zero()
    - utils_set_arm_rotate()
    - utils_set_arm_rest()
-   - utils_stacking_towels()
+   - utils_stack_towel()
 
 【指令处理逻辑】
 ◆ 类型1：含控制指令

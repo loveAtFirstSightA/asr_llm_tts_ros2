@@ -1,0 +1,7 @@
+vad:
+  ros__parameters:
+    silence_threshold: 2 # 3
+
+rt_vad:
+  ros__parameters:
+    min_silence_frames: 25

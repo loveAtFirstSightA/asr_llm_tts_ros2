@@ -182,22 +182,27 @@ class TTS(Node):
         # Create subscribers for audio file and text messages
         self.create_subscription(String, 'file_to_tts', self.file_subscriber_callback, 10)
         self.create_subscription(String, 'text_to_tts', self.text_subscriber_callback, 10)
-        # Declare and retrieve parameters
-        self.declare_parameter('service_provider', 'baidu')
-        self.declare_parameter('baidu_api_key', '')
-        self.declare_parameter('baidu_secret_key', '')
-        self.declare_parameter('ifly_appid', '')
-        self.declare_parameter('ifly_api_secret', '')
-        self.declare_parameter('ifly_api_key', '')
+        self.declare_parameter('service_provider', '1234')
+        self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
+        self.declare_parameter('baidu_api_key', '1234')
+        self.baidu_api_key_ = self.get_parameter('baidu_api_key').get_parameter_value().string_value
+        self.declare_parameter('baidu_secret_key', '1234')
+        self.baidu_secret_key_ = self.get_parameter('baidu_secret_key').get_parameter_value().string_value
+        self.declare_parameter('ifly_appid', '1234')
+        self.ifly_appid_ = self.get_parameter('ifly_appid').get_parameter_value().string_value
+        self.declare_parameter('ifly_api_secret', '1234')
+        self.ifly_api_secret_ = self.get_parameter('ifly_api_secret').get_parameter_value().string_value
+        self.declare_parameter('ifly_api_key', '1234')
+        self.ifly_api_key_ = self.get_parameter('ifly_api_key').get_parameter_value().string_value
+        
+        logger.info('service_provider: %s' % self.service_provider_)
+        logger.info('baidu_api_key %s' % self.baidu_api_key_)
+        logger.info('baidu_secret_key %s' % self.baidu_secret_key_)
+        logger.info('ifly_appid %s' % self.ifly_appid_)
+        logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
+        logger.info('ifly_api_key %s' % self.ifly_api_key_)
 
-        self.service_provider = self.get_parameter('service_provider').value
-        self.baidu_api_key = self.get_parameter('baidu_api_key').value
-        self.baidu_secret_key = self.get_parameter('baidu_secret_key').value
-        self.ifly_appid = self.get_parameter('ifly_appid').value
-        self.ifly_api_secret = self.get_parameter('ifly_api_secret').value
-        self.ifly_api_key = self.get_parameter('ifly_api_key').value
-
-        logger.info(f"TTS node initialized with service_provider: {self.service_provider}") # Use loguru logger
+        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}") # Use loguru logger
 
     def file_subscriber_callback(self, msg):
         logger.info(f"Received file message: {msg.data}") # Use loguru logger
@@ -215,12 +220,12 @@ class TTS(Node):
 
         logger.info(f"Received text message: {msg.data}") # Use loguru logger
         # Call the appropriate TTS service in a separate thread
-        if self.service_provider.lower() == 'baidu':
+        if self.service_provider_.lower() == 'baidu':
             threading.Thread(target=self.baidu_text_to_speech, args=(msg.data, output_file), daemon=True).start()
-        elif self.service_provider.lower() == 'ifly':
+        elif self.service_provider_.lower() == 'ifly':
             threading.Thread(
                 target=ifly_text_to_speech,
-                args=(self.ifly_appid, self.ifly_api_key, self.ifly_api_secret, msg.data, output_file, logger), # Pass the loguru logger
+                args=(self.ifly_appid_, self.ifly_api_key_, self.ifly_api_secret_, msg.data, output_file, logger), # Pass the loguru logger
                 daemon=True
             ).start()
         else:
@@ -266,8 +271,8 @@ class TTS(Node):
         url = "https://aip.baidubce.com/oauth/2.0/token"
         params = {
             "grant_type": "client_credentials",
-            "client_id": self.baidu_api_key,
-            "client_secret": self.baidu_secret_key
+            "client_id": self.baidu_api_key_,
+            "client_secret": self.baidu_secret_key_
         }
         try:
             response = requests.post(url, params=params, timeout=10)

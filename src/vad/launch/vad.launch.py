@@ -33,11 +33,11 @@ def generate_launch_description():
         Node(
             package='vad',
             executable='vad',
-            # parameters=[{'/* param_name */': /* param_value */}],
             output='screen'),
         Node(
             package='vad',
             executable='rtvad',
-            # parameters=[{'/* param_name */': /* param_value */}],
+            parameters=[os.path.join(get_package_share_directory('vad'),
+                'config', 'param.yaml')],
             output='screen'),
     ])

@@ -33,7 +33,7 @@ def generate_launch_description():
         Node(
             package='llm',
             executable='llm',
-            # deepseak || deepseak_official || deepseak_hivebox || google || baidu
-            parameters=[{'llm_type': 'deepseak'}],
-            output='screen')
+            parameters=[os.path.join(get_package_share_directory('llm'),
+                'config', 'param.yaml')],
+            output='screen'),
     ])

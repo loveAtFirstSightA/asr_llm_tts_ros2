@@ -45,13 +45,18 @@ class VAD(Node):
             String, 'vad_command', self.vad_command_subscriber_callback, 10)
         # 发布 VAD 检测结果，通知录音程序停止录音
         self.vad_result_publisher_ = self.create_publisher(String, 'vad_result', 10)
+        # 参数声明
+        self.declare_parameter('silence_threshold', 1)
+        self.silence_threshold_ = self.get_parameter('silence_threshold').get_parameter_value().integer_value
         
         # PCM音频参数
         self.sample_rate = 16000
         self.frame_duration = 30
         self.frame_size = int(self.sample_rate * self.frame_duration / 1000) * 2
         self.vad_mode = 3
-        self.silence_threshold = 3.0
+        # self.silence_threshold = 3.0
+        self.silence_threshold = self.silence_threshold_
+        logger.info('默音阈值: %d' % self.silence_threshold)
 
         self.vad = webrtcvad.Vad(self.vad_mode)
         self.stop_requested_ = False

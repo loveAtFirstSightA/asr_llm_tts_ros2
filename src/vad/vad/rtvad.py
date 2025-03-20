@@ -24,6 +24,9 @@ logger.info('正在使用 loguru 日志系统')
 class RealTimeVADNode(Node, FileSystemEventHandler):
     def __init__(self):
         super().__init__('rt_vad')
+        # 声明参数
+        self.declare_parameter('min_silence_frames', 25)
+        self.min_silence_frames_ = self.get_parameter('min_silence_frames').get_parameter_value().integer_value
         self.input_path = None
         self.output_dir = None
         self._init_params()
@@ -47,7 +50,9 @@ class RealTimeVADNode(Node, FileSystemEventHandler):
         self.bytes_per_sample = 2      # 16bit=2字节
         self.frame_size = int(self.sample_rate * self.frame_duration / 1000)
         self.frame_bytes = self.frame_size * self.bytes_per_sample
-        self.min_silence_frames = 50 #5    # 结束静音帧数阈值
+        # self.min_silence_frames = 50 #5    # 结束静音帧数阈值
+        self.min_silence_frames = self.min_silence_frames_  # 结束静音帧数阈值
+        logger.info('结束静音帧数阈值: %d' % self.min_silence_frames)
         self.output_dir = os.path.abspath("/home/lio/asr_llm_tts_ros2/src/ifly_mic_driver/audio/segments")  # 默认输出目录
 
     def _verify_directory(self):

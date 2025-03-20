@@ -32,6 +32,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', 'vad/launch'), glob('launch/*')),
+        (os.path.join('share', 'vad/config'), glob('config/*'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,

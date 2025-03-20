@@ -33,6 +33,7 @@ from loguru import logger
 import re
 import ast
 from openai import OpenAI
+import jieba
 from llm.sys_prompt import AGENT_SYS_PROMPT
 
 # Configure loguru output
@@ -56,12 +57,48 @@ class LLM(Node):
         # command
         self.camera_publisher_ = self.create_publisher(String, 'camera_command', 10)
         self.arm_publisher_ = self.create_publisher(String, 'arm_command', 10)
-        # TODO 待调试
+        # TODO 待调试SOCKET
         # interface
         self.interface_publisher_ = self.create_publisher(String, 'interface_msg', 10)
+        # TODO 测试语音控制折叠毛巾
+        self.arm_command_publisher_ = self.create_publisher(String, 'voice_command', 10)
+        # NLP预处理标注位
+        self.mini_nlp_ = False
+        # 声明NLP预处理词组
+        self.action_noun_phrases_stack_towel = ["叠毛巾", "叠", "毛巾"]
 
     def asr_subscriber_callback(self, msg):
-        logger.info('Received message asr result: %s' % msg.data) # Use loguru logger
+        logger.info('Received message asr result: %s' % msg.data)
+        # NLP预处理 动作名词关键字搜索 
+        if msg.data:
+            text = msg.data
+
+            # 1. 分词 (使用全模式)
+            processed_tokens = jieba.cut(text, cut_all=True)
+            processed_tokens = list(processed_tokens) # 转换为列表
+
+            logger.info('Processed tokens (jieba): %s' % processed_tokens)
+
+            # 2. 动作名词关键字搜索 (修改后的逻辑)
+            found_actions = []
+            for phrase in self.action_noun_phrases_stack_towel:
+                phrase_tokens = jieba.cut(phrase, cut_all=False) # 对关键字词组仍然使用精确模式
+                all_found = True
+                for token in phrase_tokens:
+                    if token not in processed_tokens:
+                        all_found = False
+                        break
+                if all_found:
+                    found_actions.append(phrase)
+
+            if found_actions:
+                logger.info('Found action noun keywords: %s' % found_actions)
+                self.mini_nlp_ = True
+                # 发布动作指令 叠毛巾
+                self.send_stack_towel()
+            else:
+                logger.info('No action noun keywords found.')
+        
         thread = threading.Thread(target=self.call_llm_service, args=(msg.data,))
         thread.start()
         # TODO 待调试
@@ -71,28 +108,28 @@ class LLM(Node):
         self.interface_publisher_.publish(interface_msgs)
 
     def call_llm_service(self, asr_result):
-        logger.info('Use LLM model type: %s' % self.llm_type_) # Use loguru logger
+        logger.info('Use LLM model type: %s' % self.llm_type_)
         # ollama 本机部署模型
-        if self.llm_type_ == 'deepseak':
-            LLM_result = self.deepseak(asr_result)
+        if self.llm_type_ == 'deepseek':
+            LLM_result = self.chat_deepseek(asr_result)
             
         # 调用官方api接口
-        elif self.llm_type_ == 'deepseak_official':
-            LLM_result = self.deepseak_official(asr_result)
+        elif self.llm_type_ == 'deepseek_official':
+            LLM_result = self.chat_deepseek_official(asr_result)
             
         # 调用丰巢本地部署接口
-        elif self.llm_type_ == 'deepseak_hivebox':
-            LLM_result = self.deepseak_hivebox(asr_result)
+        elif self.llm_type_ == 'deepseek_hivebox':
+            LLM_result = self.chat_deepseek_hivebox(asr_result)
             
         elif self.llm_type_ == 'google':
-            LLM_result = self.google_gemini(asr_result)
+            LLM_result = self.chat_google_gemini(asr_result)
             
         elif self.llm_type_ == 'baidu':
-            LLM_result = self.baidu_qianfan(asr_result)
+            LLM_result = self.chat_baidu_qianfan(asr_result)
             
-        logger.info('LLM result: %s' % LLM_result) # Use loguru logger
+        logger.info('LLM result: %s' % LLM_result)
         parsed_result = self.parse_llm_result_json(LLM_result)
-        logger.info('LLM parsed_result: %s ' % parsed_result) # Use loguru logger
+        logger.info('LLM parsed_result: %s ' % parsed_result)
         
         if parsed_result:
             # 访问解析后的 JSON 对象
@@ -135,8 +172,8 @@ class LLM(Node):
         else:
             logger.info("无法解析 JSON 或未找到 JSON 标记。")
 
-    def deepseak(self, prompt='你好，你是谁？'):
-        logger.info("当前模型类型是： deepseak")
+    def chat_deepseek(self, prompt='你好，你是谁？'):
+        logger.info("当前模型类型是： deepseek")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
         response = ollama.chat(model='deepseek-r1:14b', messages=[
@@ -162,8 +199,8 @@ class LLM(Node):
             logger.info('未找到关键词 </think>') # 打印未找到关键词的提示，用于调试
             return response_content # 修改: 如果未找到关键词，返回原始的 response 内容, 而不是 None
     
-    def deepseak_official(self, prompt='你好，你是谁？'):
-        logger.info("当前模型类型是： deepseak_official")
+    def chat_deepseek_official(self, prompt='你好，你是谁？'):
+        logger.info("当前模型类型是： deepseek_official")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
         client = OpenAI(api_key="sk-3c928ce7ca3645a68f0c91f734682460", base_url="https://api.deepseek.com")
@@ -182,22 +219,43 @@ class LLM(Node):
         print(json_data)
         return json_data
     
-    def deepseak_hivebox(self, prompt='你好，你是谁？'):
-        logger.info("当前模型类型是： deepseak_official")
+    # TODO 需要链接局域网
+    def chat_deepseek_hivebox(self, prompt='你好，你是谁？'):
+        logger.info("当前的模型是： deepseek_hivebox（本地化部署）")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
-        
+        BASE_URL = "https://aiapi.fcbox.com/v1/"
+        API_SECRET_KEY = "fc-2025032013505854200WDAYD12714A95AD8231C732115BDE"
+        """
+        其他模型对话
+        :param query: 提问
+        """
+        client = OpenAI(api_key=API_SECRET_KEY, base_url=BASE_URL)
+        resp = client.chat.completions.create(
+            model="deepseek-r1-distill-llama-70b",
+            messages=[
+                {"role": "system", "content": AGENT_SYS_PROMPT},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        print(resp)
+        # 提取 JSON 回复
+        if resp.choices and resp.choices[0].message and resp.choices[0].message.content:
+            json_reply_str = resp.choices[0].message.content
+            # 可以选择直接打印或者返回这个 JSON 字符串
+            print("\n提取到的 JSON 回复:")
+            print(json_reply_str)
+            return json_reply_str
+        else:
+            print("\n未能提取到 JSON 回复。")
+            return None
 
-            
     def parse_llm_result_json(self, llm_result):
         llm_result = str(llm_result)
-
         if llm_result.startswith("```json") and llm_result.endswith("```"):
             llm_result = llm_result[7:-3].strip()
-
         # 删除空格和回车
         llm_result = llm_result.replace(" ", "").replace("\n", "")
-
         try:
             parsed_json = json.loads(llm_result)
             return parsed_json
@@ -209,7 +267,7 @@ class LLM(Node):
             logger.error(f"解析 JSON 时发生错误: {e}")
             return None
 
-    def google_gemini(self, prompt='你好，你是谁？'):
+    def chat_google_gemini(self, prompt='你好，你是谁？'):
         content = AGENT_SYS_PROMPT + prompt
         client = genai.Client(api_key='AIzaSyBwvNef1hTp_ZP-JAs8an1vvCM8ZtC0kCs')
         logger.info('contents: %s' % content)
@@ -220,7 +278,7 @@ class LLM(Node):
         logger.info('gemini response: %s' % response.text)
         return response.text
 
-    def baidu_qianfan(self, prompt='你好，你是谁？'):
+    def chat_baidu_qianfan(self, prompt='你好，你是谁？'):
         content = AGENT_SYS_PROMPT + prompt
         headers = {
             'Content-Type': 'application/json',
@@ -338,8 +396,19 @@ class LLM(Node):
         logger.info("Executing utils_set_arm_rest() - 机械臂回到休息位置")
         # 这里添加机械臂回到休息位置的具体代码，例如调用机械臂控制 ROS2 Action/Service
     
-    def utils_stacking_towels(self):
-        logger.info("Executing utils_stacking_towels()")
+    def utils_stack_towel(self):
+        if self.mini_nlp_:
+            logger.info('mini_nlp识别成功，此处返回')
+            self.mini_nlp_ = False
+            return
+        self.send_stack_towel()
+        logger.info("Executing utils_stack_towel()")
+    
+    def send_stack_towel(self):
+        msg = String()
+        msg.data = 'stack_towel'
+        self.arm_command_publisher_.publish(msg)
+        logger.info("Send action command %s" % msg.data)
 
 def main(args=None):
     rclpy.init(args=args)
@@ -347,7 +416,7 @@ def main(args=None):
     try:
         rclpy.spin(llm_node)
     except KeyboardInterrupt:
-        logger.info("LLM node interrupted by user.") # Use loguru logger
+        logger.info("LLM node interrupted by user.")
     finally:
         llm_node.destroy_node()
         rclpy.shutdown()
