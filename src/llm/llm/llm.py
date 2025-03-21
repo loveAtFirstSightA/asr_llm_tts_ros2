@@ -402,7 +402,7 @@ class LLM(Node):
     
     def utils_stack_towel(self):
         if self.mini_nlp_:
-            logger.info('mini_nlp识别成功，此处返回')
+            logger.info('mini nlp recognize success')
             self.mini_nlp_ = False
             return
         self.send_stack_towel()

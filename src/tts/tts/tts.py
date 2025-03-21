@@ -27,7 +27,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from std_msgs.msg import Int64
 import requests
-from playsound import playsound
+import pygame
 import websocket
 import datetime
 import hashlib
@@ -48,7 +48,6 @@ logger.add(
     level="INFO"
 )
 logger.info('正在使用 loguru 日志系统')
-
 
 # Constants for frame statuses
 STATUS_FIRST_FRAME = 0      # First frame indicator
@@ -170,7 +169,9 @@ def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.w
     )
     ws_app.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
     try:
-        playsound(output_file)
+        pygame.mixer.init()
+        pygame.mixer.music.load(output_file)
+        pygame.mixer.music.play()
     except Exception as e:
         logger.error(f"Error playing sound file {output_file}: {e}")
 
@@ -183,6 +184,8 @@ class TTS(Node):
         # Create subscribers for audio file and text messages
         self.create_subscription(String, 'file_to_tts', self.file_subscriber_callback, 10)
         self.create_subscription(String, 'text_to_tts', self.text_subscriber_callback, 10)
+        self.task_subscriber_ = self.create_subscription(
+            String, 'task', self.task_subscriber_callback, 10)
         self.declare_parameter('service_provider', '1234')
         self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
         self.declare_parameter('baidu_api_key', '1234')
@@ -202,14 +205,28 @@ class TTS(Node):
         logger.info('ifly_appid %s' % self.ifly_appid_)
         logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
         logger.info('ifly_api_key %s' % self.ifly_api_key_)
-        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")
+        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")        
+        pygame.mixer.init()
+        
+        self.unit_status_ = 'idle' # idle || running
+        self.execute_next_ = True
 
     def file_subscriber_callback(self, msg):
         logger.info(f"Received file message: {msg.data}")
-        self.play_audio_async(msg.data)
+        # 单独创建线程播放
+        threading.Thread(target=self.play_file_audio, args=(msg,), daemon=True).start()
+    
+    def play_file_audio(self, msg):
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(msg.data)
+            pygame.mixer.music.play()
+        except Exception as e:
+            logger.error(f"Error playing audio file {msg.data}: {e}")
 
     def text_subscriber_callback(self, msg):
-        output_file = './output.wav'
+        self.unit_status_ = 'running'
+        output_file = './output.mp3'
         # Remove existing audio file if exists
         if os.path.exists(output_file):
             try:
@@ -230,6 +247,12 @@ class TTS(Node):
             ).start()
         else:
             logger.error("Invalid service provider specified.")
+    
+    def task_subscriber_callback(self, msg):
+        self.get_logger().info('Received messages task: %s' % msg.data)
+        pygame.mixer.music.stop()
+        if self.unit_status_ == 'running':
+            self.execute_next_ = False
 
     def baidu_text_to_speech(self, text, output_file):
         logger.info(f"Baidu TTS processing text: {text}")
@@ -239,7 +262,6 @@ class TTS(Node):
             if not access_token:
                 logger.error("Failed to obtain access token.")
                 return
-
             params = {
                 'tex': text,
                 'tok': access_token,
@@ -250,7 +272,7 @@ class TTS(Node):
                 'pit': 5,
                 'vol': 5,
                 'per': 4100,
-                'aue': 6
+                'aue': 3  # 3 - mp3 6 - wav
             }
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -289,13 +311,18 @@ class TTS(Node):
         """
         Play audio file asynchronously to avoid blocking ROS2 callbacks.
         """
-        threading.Thread(target=self._play_audio, args=(file_path,), daemon=True).start()
+        threading.Thread(target=self.play_txt_audio, args=(file_path,), daemon=True).start()
 
-    def _play_audio(self, file_path):
+    def play_txt_audio(self, file_path):
         try:
-            playsound(file_path)
-        except Exception as e:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
+        except pygame.error as e:
             logger.error(f"Error playing audio file {file_path}: {e}")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during audio playback: {e}")
+
 
 def main(args=None):
     rclpy.init(args=args)
