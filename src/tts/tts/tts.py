@@ -183,10 +183,6 @@ class TTS(Node):
         # Create subscribers for audio file and text messages
         self.create_subscription(String, 'file_to_tts', self.file_subscriber_callback, 10)
         self.create_subscription(String, 'text_to_tts', self.text_subscriber_callback, 10)
-        self.task_number_subscriber_ = self.create_subscription(
-            Int64, 'task_number', self.task_number_subscriber_callback, 10)
-        self.task_number_ = 0
-        self.task_count_ = 0
         self.declare_parameter('service_provider', '1234')
         self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
         self.declare_parameter('baidu_api_key', '1234')
@@ -207,17 +203,12 @@ class TTS(Node):
         logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
         logger.info('ifly_api_key %s' % self.ifly_api_key_)
         logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")
-    
-    def task_number_subscriber_callback(self, msg):
-        logger.info('Received task_number message: %d' % msg.data)
-        self.task_number_ = msg.data
 
     def file_subscriber_callback(self, msg):
         logger.info(f"Received file message: {msg.data}")
         self.play_audio_async(msg.data)
 
     def text_subscriber_callback(self, msg):
-        self.task_count_ = self.task_count_ + 1
         output_file = './output.wav'
         # Remove existing audio file if exists
         if os.path.exists(output_file):
@@ -270,10 +261,6 @@ class TTS(Node):
                 with open(output_file, "wb") as f:
                     f.write(response.content)
                 logger.info(f"Baidu TTS success, audio saved to {output_file}")
-                # 任务编码验证
-                if self.task_count_ != self.task_number_:
-                    logger.warning('检测到任务编码不一致，返回')
-                    return
                 self.play_audio_async(output_file)
             else:
                 logger.error(f"Baidu TTS failed: {response.text}")

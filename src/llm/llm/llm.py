@@ -50,12 +50,10 @@ class LLM(Node):
 
     def __init__(self):
         super().__init__('llm')
-        self.task_number_subscriber_ = self.create_subscription(
-            Int64, 'task_number', self.task_number_subscriber_callback, 10)
-        self.task_number_ = 0
-        self.task_count_ = 0
         self.asr_subscriber_ = self.create_subscription(
             String, 'asr_result', self.asr_subscriber_callback, 10)
+        self.declare_parameter('deepseek_model', 'deepseek_model')
+        self.deepseek_model_ = self.get_parameter('deepseek_model').get_parameter_value().string_value
         self.llm_publisher_ = self.create_publisher(String, 'text_to_tts', 10)
         self.declare_parameter('llm_type', 'llm_type')
         self.llm_type_ = self.get_parameter('llm_type').get_parameter_value().string_value
@@ -70,39 +68,35 @@ class LLM(Node):
         # NLP预处理标注位
         self.mini_nlp_ = False
         # 声明NLP预处理词组
-        self.action_noun_phrases_stack_towel = ["叠毛巾", "叠", "毛巾"]
-    
-    def task_number_subscriber_callback(self, msg):
-        logger.info('Received task_number message: %d' % msg.data)
-        self.task_number_ = msg.data
+        self.action_noun_phrases_stack_towel = ["叠毛巾"]
 
+    def is_sublist(self, sublist, mainlist):
+        if not sublist:
+            return True
+        if not mainlist:
+            return False
+        for i in range(len(mainlist) - len(sublist) + 1):
+            if mainlist[i:i + len(sublist)] == sublist:
+                return True
+        return False
+    
     def asr_subscriber_callback(self, msg):
-        self.task_count_ = self.task_count_ + 1
         logger.info('Received message asr result: %s' % msg.data)
-        # NLP预处理 动作名词关键字搜索 
+        # NLP预处理 动作名词关键字搜索
         if msg.data:
             text = msg.data
-
-            # 1. 分词 (使用全模式)
-            processed_tokens = jieba.cut(text, cut_all=True)
-            processed_tokens = list(processed_tokens) # 转换为列表
-
+            # 1. 分词 (使用精确模式)
+            processed_tokens = list(jieba.cut(text))
             logger.info('Processed tokens (jieba): %s' % processed_tokens)
-
             # 2. 动作名词关键字搜索 (修改后的逻辑)
-            found_actions = []
+            found_actions = False
             for phrase in self.action_noun_phrases_stack_towel:
-                phrase_tokens = jieba.cut(phrase, cut_all=False) # 对关键字词组仍然使用精确模式
-                all_found = True
-                for token in phrase_tokens:
-                    if token not in processed_tokens:
-                        all_found = False
-                        break
-                if all_found:
-                    found_actions.append(phrase)
-
+                phrase_tokens = list(jieba.cut(phrase)) # 对关键字词组使用精确模式
+                if self.is_sublist(phrase_tokens, processed_tokens):
+                    found_actions = True
+                    break
             if found_actions:
-                logger.info('Found action noun keywords: %s' % found_actions)
+                logger.info('Found action noun keywords: %s' % self.action_noun_phrases_stack_towel)
                 self.mini_nlp_ = True
                 # 发布动作指令 叠毛巾
                 self.send_stack_towel()
@@ -186,7 +180,7 @@ class LLM(Node):
         logger.info("当前模型类型是： deepseek")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
-        response = ollama.chat(model='deepseek-r1:14b', messages=[
+        response = ollama.chat(model=self.deepseek_model_, messages=[
         # response = ollama.chat(model='deepseek-r1:8b', messages=[
             {
                 'role': 'user',
@@ -407,14 +401,6 @@ class LLM(Node):
         # 这里添加机械臂回到休息位置的具体代码，例如调用机械臂控制 ROS2 Action/Service
     
     def utils_stack_towel(self):
-        # 任务编码验证
-        if self.task_count_ != self.task_number_:
-            logger.warning('检测到任务编码不一致，返回')
-            # info
-            if self.mini_nlp_:
-                logger.info('mini_nlp识别成功，此处返回')
-                self.mini_nlp_ = False
-            return
         if self.mini_nlp_:
             logger.info('mini_nlp识别成功，此处返回')
             self.mini_nlp_ = False

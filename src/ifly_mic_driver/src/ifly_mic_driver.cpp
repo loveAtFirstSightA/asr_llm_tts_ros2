@@ -58,9 +58,7 @@ IflyMicDriver::IflyMicDriver() : Node("ifly_mic_driver")
         "vad_result", 10, std::bind(&IflyMicDriver::vad_result_subscriber_callback, this, std::placeholders::_1));
     // real time publisher
     rt_vad_publisher_ = this->create_publisher<std_msgs::msg::String>("rt_vad_path", 10);
-    // task_number with voice
-    task_number_publisher_ = this->create_publisher<std_msgs::msg::Int64>("task_number", 10);
-
+ 
     // 发布唤醒提示语音路径
     feedback_file_publisher(awake_prompt_voice_path_, 3);
     _set_awake_word("你好小巢");
@@ -128,8 +126,6 @@ void IflyMicDriver::timer_callback()
     if (interactive_mode_ == "single") {
         if (_get_awake()) {
             if (!get_record_status()) {
-                // 发布任务编码
-                send_task_number();
                 // 停止当前录音和VAD
                 if (get_record_status()) {
                     stop_record();
@@ -252,16 +248,6 @@ void IflyMicDriver::feedback_file_publisher(const std::string file_path, const i
     spdlog::info("Publishing message feedback notice: {}", msg.data);
     feedback_publisher_->publish(msg);
     sleep(delay_time);
-}
-
-void IflyMicDriver::send_task_number()
-{
-    // 任务编码 1， 2， 3
-    task_number_ ++;
-    auto msg = std_msgs::msg::Int64();
-    msg.data = task_number_;
-    spdlog::info("Publishing message task number: %d", msg.data);
-    task_number_publisher_->publish(msg);
 }
 
 

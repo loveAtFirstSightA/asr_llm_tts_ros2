@@ -2,6 +2,6 @@ llm:
   ros__parameters:
     # deepseek || deepseek_official
     # deepseek_hivebox || google || baidu
-    llm_type: "deepseek_official"
-
-
+    llm_type: "google"
+    # deepseek-r1:8b || deepseek-r1:14b
+    deepseek_model: "deepseek-r1:8b"
