@@ -77,6 +77,7 @@ private:
     int timer_cnt_{0};
     // 计时器 进入休眠状态
     int sleep_countdown_;
+
 };
 }  // namespace ifly_mic_driver
 #endif  // IFLY_MIC_DRIVER__IFLY_MIC_DRIVER_HPP_

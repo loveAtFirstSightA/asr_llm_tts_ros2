@@ -21,6 +21,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <chrono>
 
 extern int _get_boot(void);
 extern int _get_awake(void);
@@ -62,7 +63,7 @@ IflyMicDriver::IflyMicDriver() : Node("ifly_mic_driver")
     task_publisher_ = this->create_publisher<std_msgs::msg::String>("task", 10);
 
     // 发布唤醒提示语音路径
-    feedback_file_publisher(awake_prompt_voice_path_, 3);
+    feedback_file_publisher(awake_prompt_voice_path_, 3000);
     _set_awake_word("你好小巢");
     spdlog::info("ifly_mic_driver node launched");
 }
@@ -163,13 +164,12 @@ void IflyMicDriver::timer_callback()
     } else {
         spdlog::error("Error interactive_mode_ sertting, please set single or multiple");
     }
-
 }
 
 void IflyMicDriver::start_record(const std::string timestamp)
 {
     // 发布唤醒提示语音路径
-    feedback_file_publisher(awake_notice_voice_path_, 1);
+    feedback_file_publisher(awake_notice_voice_path_, 1500);
     spdlog::info("current pcm mode: {}, start_record", pcm_mode_);
     notice_task();
     if (pcm_mode_ == "denoise") {
@@ -250,17 +250,17 @@ void IflyMicDriver::feedback_file_publisher(const std::string file_path, const i
     msg.data = file_path;
     spdlog::info("Publishing message feedback notice: {}", msg.data);
     feedback_publisher_->publish(msg);
-    sleep(delay_time);
+    // sleep(delay_time);
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_time));
 }
 
 void IflyMicDriver::notice_task()
 {
     auto msg = std_msgs::msg::String();
     msg.data = "notice_new_task";
-    RCLCPP_INFO(this->get_logger(), "Publishing message: %s", msg.data);
+    spdlog::info("Publishing message: %s", msg.data);
     task_publisher_->publish(msg);
 }
-
 
 
 }  // namespace ifly_mic_driver

@@ -69,6 +69,11 @@ class LLM(Node):
         self.mini_nlp_ = False
         # 声明NLP预处理词组
         self.action_noun_phrases_stack_towel = ["叠毛巾"]
+        # 接收new task
+        self.task_subscriber_ = self.create_subscription(String, 'task', self.task_subscriber_callback, 10)
+    
+    def task_subscriber_callback(self, msg):
+        self.get_logger().info('Received message new task')
 
     def is_sublist(self, sublist, mainlist):
         if not sublist:

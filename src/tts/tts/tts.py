@@ -38,7 +38,7 @@ from urllib.parse import urlencode
 import ssl
 from wsgiref.handlers import format_date_time
 from time import mktime
-from loguru import logger  # Import loguru
+from loguru import logger
 
 # Configure loguru output (similar to your previous example)
 logger.remove()
@@ -110,7 +110,7 @@ class WsParam:
         full_url = f"{base_url}?{urlencode(params)}"
         return full_url
 
-def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.wav', logger=logger): # Use the global logger
+def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.wav', logger=logger):
     """
     Convert text to speech using ifly service, and play the resulting audio.
     """
@@ -176,16 +176,14 @@ def ifly_text_to_speech(app_id, api_key, api_secret, text, output_file='./demo.w
         logger.error(f"Error playing sound file {output_file}: {e}")
 
 class TTS(Node):
-    """
-    ROS2 text-to-speech node supporting both Baidu and ifly services.
-    """
     def __init__(self):
         super().__init__('tts')
-        # Create subscribers for audio file and text messages
-        self.create_subscription(String, 'file_to_tts', self.file_subscriber_callback, 10)
-        self.create_subscription(String, 'text_to_tts', self.text_subscriber_callback, 10)
-        self.task_subscriber_ = self.create_subscription(
-            String, 'task', self.task_subscriber_callback, 10)
+        pygame.mixer.init()
+        
+        self.task_subscriber_ = self.create_subscription(String, 'task', self.task_subscriber_callback, 10)
+        self.input_file_subscriber_ = self.create_subscription(String, 'file_to_tts', self.input_file_subscriber_callback, 10)
+        self.input_text_subscriber_ = self.create_subscription(String, 'text_to_tts', self.input_text_subscriber_callback, 10)
+        
         self.declare_parameter('service_provider', '1234')
         self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
         self.declare_parameter('baidu_api_key', '1234')
@@ -198,34 +196,25 @@ class TTS(Node):
         self.ifly_api_secret_ = self.get_parameter('ifly_api_secret').get_parameter_value().string_value
         self.declare_parameter('ifly_api_key', '1234')
         self.ifly_api_key_ = self.get_parameter('ifly_api_key').get_parameter_value().string_value
-        
-        logger.info('service_provider: %s' % self.service_provider_)
-        logger.info('baidu_api_key %s' % self.baidu_api_key_)
-        logger.info('baidu_secret_key %s' % self.baidu_secret_key_)
-        logger.info('ifly_appid %s' % self.ifly_appid_)
-        logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
-        logger.info('ifly_api_key %s' % self.ifly_api_key_)
-        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")        
-        pygame.mixer.init()
-        
-        self.unit_status_ = 'idle' # idle || running
-        self.execute_next_ = True
+        # TODO debug
+        # logger.info('service_provider: %s' % self.service_provider_)
+        # logger.info('baidu_api_key %s' % self.baidu_api_key_)
+        # logger.info('baidu_secret_key %s' % self.baidu_secret_key_)
+        # logger.info('ifly_appid %s' % self.ifly_appid_)
+        # logger.info('ifly_api_secret %s' % self.ifly_api_secret_)
+        # logger.info('ifly_api_key %s' % self.ifly_api_key_)
+        logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")
 
-    def file_subscriber_callback(self, msg):
+    def task_subscriber_callback(self, msg):
+        self.get_logger().info('Received messages task: %s' % msg.data)
+        pygame.mixer.music.stop()
+        
+    def input_file_subscriber_callback(self, msg):
         logger.info(f"Received file message: {msg.data}")
-        # 单独创建线程播放
-        threading.Thread(target=self.play_file_audio, args=(msg,), daemon=True).start()
-    
-    def play_file_audio(self, msg):
-        try:
-            pygame.mixer.music.stop()
-            pygame.mixer.music.load(msg.data)
-            pygame.mixer.music.play()
-        except Exception as e:
-            logger.error(f"Error playing audio file {msg.data}: {e}")
+        self.play_audio_async(msg.data)
 
-    def text_subscriber_callback(self, msg):
-        self.unit_status_ = 'running'
+    def input_text_subscriber_callback(self, msg):
+        logger.info(f"Received text message: {msg.data}")
         output_file = './output.mp3'
         # Remove existing audio file if exists
         if os.path.exists(output_file):
@@ -234,11 +223,13 @@ class TTS(Node):
                 logger.info(f"Removed existing file: {output_file}")
             except Exception as e:
                 logger.error(f"Error removing file {output_file}: {e}")
-
-        logger.info(f"Received text message: {msg.data}")
         # Call the appropriate TTS service in a separate thread
         if self.service_provider_.lower() == 'baidu':
-            threading.Thread(target=self.baidu_text_to_speech, args=(msg.data, output_file), daemon=True).start()
+            threading.Thread(
+                target=self.baidu_text_to_speech,
+                args=(msg.data, output_file),
+                daemon=True
+            ).start()
         elif self.service_provider_.lower() == 'ifly':
             threading.Thread(
                 target=ifly_text_to_speech,
@@ -247,12 +238,6 @@ class TTS(Node):
             ).start()
         else:
             logger.error("Invalid service provider specified.")
-    
-    def task_subscriber_callback(self, msg):
-        self.get_logger().info('Received messages task: %s' % msg.data)
-        pygame.mixer.music.stop()
-        if self.unit_status_ == 'running':
-            self.execute_next_ = False
 
     def baidu_text_to_speech(self, text, output_file):
         logger.info(f"Baidu TTS processing text: {text}")
@@ -308,12 +293,10 @@ class TTS(Node):
             return None
 
     def play_audio_async(self, file_path):
-        """
-        Play audio file asynchronously to avoid blocking ROS2 callbacks.
-        """
-        threading.Thread(target=self.play_txt_audio, args=(file_path,), daemon=True).start()
+        threading.Thread(target=self.play_audio, args=(file_path,), daemon=True).start()
 
-    def play_txt_audio(self, file_path):
+    def play_audio(self, file_path):
+        logger.info('thread - playing %s' % file_path)
         try:
             pygame.mixer.music.stop()
             pygame.mixer.music.load(file_path)
