@@ -179,8 +179,9 @@ class TTS(Node):
     def __init__(self):
         super().__init__('tts')
         pygame.mixer.init()
-        
-        self.task_subscriber_ = self.create_subscription(String, 'task', self.task_subscriber_callback, 10)
+        self.target_task_ = 0
+        self.current_task = 0
+        self.task_subscriber_ = self.create_subscription(Int64, 'task_number', self.task_subscriber_callback, 10)
         self.input_file_subscriber_ = self.create_subscription(String, 'file_to_tts', self.input_file_subscriber_callback, 10)
         self.input_text_subscriber_ = self.create_subscription(String, 'text_to_tts', self.input_text_subscriber_callback, 10)
         
@@ -206,14 +207,16 @@ class TTS(Node):
         logger.info(f"TTS node initialized with service_provider: {self.service_provider_}")
 
     def task_subscriber_callback(self, msg):
-        self.get_logger().info('Received messages task: %s' % msg.data)
+        self.get_logger().info('Received task number: %s' % msg.data)
         pygame.mixer.music.stop()
+        self.target_task_ = msg.data
         
     def input_file_subscriber_callback(self, msg):
         logger.info(f"Received file message: {msg.data}")
         self.play_audio_async(msg.data)
 
     def input_text_subscriber_callback(self, msg):
+        logger.info('current task number: {}', self.current_task)
         logger.info(f"Received text message: {msg.data}")
         output_file = './output.mp3'
         # Remove existing audio file if exists
@@ -268,6 +271,14 @@ class TTS(Node):
                 with open(output_file, "wb") as f:
                     f.write(response.content)
                 logger.info(f"Baidu TTS success, audio saved to {output_file}")
+                if self.target_task_ != self.current_task:
+                    logger.info('target task: {}, current task: {}', self.target_task_, self.current_task)
+                    self.current_task = self.target_task_
+                    # self.play_audio_async('/home/lio/asr_llm_tts_ros2/src/tts/resource/repeat.mp3')
+                    return
+
+                # TODO debug
+                self.current_task = self.current_task + 1
                 self.play_audio_async(output_file)
             else:
                 logger.error(f"Baidu TTS failed: {response.text}")
