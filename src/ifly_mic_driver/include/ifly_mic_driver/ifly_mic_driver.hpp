@@ -45,7 +45,7 @@ private:
     void feedback_file_publisher(const std::string file_path, const int delay_time);
     void start_vad(const std::string path);
     void stop_vad();
-    void notice_task_number();
+    void notice_task();
     
     rclcpp::TimerBase::SharedPtr timer_;
     // feedback
@@ -57,9 +57,8 @@ private:
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr vad_result_subscriber_;
     // read time vad
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr rt_vad_publisher_;
-    // task number
-    rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr task_number_publisher_;
-    int task_number_{0};
+    // notice task
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr task_publisher_;
 
     // parameters
     std::string pcm_path_;

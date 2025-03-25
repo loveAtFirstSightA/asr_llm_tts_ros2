@@ -59,8 +59,8 @@ IflyMicDriver::IflyMicDriver() : Node("ifly_mic_driver")
         "vad_result", 10, std::bind(&IflyMicDriver::vad_result_subscriber_callback, this, std::placeholders::_1));
     // real time publisher
     rt_vad_publisher_ = this->create_publisher<std_msgs::msg::String>("rt_vad_path", 10);
-    // task number publisher
-    task_number_publisher_ = this->create_publisher<std_msgs::msg::Int64>("task_number", 10);
+    // notice every unit new task
+    task_publisher_ = this->create_publisher<std_msgs::msg::String>("notice_task", 10);
     // 发布唤醒提示语音路径
     feedback_file_publisher(awake_prompt_voice_path_, 3000);
     _set_awake_word("你好小巢");
@@ -170,7 +170,7 @@ void IflyMicDriver::start_record(const std::string timestamp)
     // 发布唤醒提示语音路径
     feedback_file_publisher(awake_notice_voice_path_, 1500);
     spdlog::info("current pcm mode: {}, start_record", pcm_mode_);
-    notice_task_number();
+    notice_task();
     if (pcm_mode_ == "denoise") {
         _start_to_record_denoised_sound(timestamp);
     } else if (pcm_mode_ == "original") {
@@ -253,13 +253,12 @@ void IflyMicDriver::feedback_file_publisher(const std::string file_path, const i
     std::this_thread::sleep_for(std::chrono::milliseconds(delay_time));
 }
 
-void IflyMicDriver::notice_task_number()
+void IflyMicDriver::notice_task()
 {
-    task_number_++;
-    auto msg = std_msgs::msg::Int64();
-    msg.data = task_number_;
-    spdlog::info("Publishing task number: {}", msg.data);
-    task_number_publisher_->publish(msg);
+    auto msg = std_msgs::msg::String();
+    msg.data = "notice_task";
+    spdlog::info("Publishing notice task : {}", msg.data);
+    task_publisher_->publish(msg);
 }
 
 
