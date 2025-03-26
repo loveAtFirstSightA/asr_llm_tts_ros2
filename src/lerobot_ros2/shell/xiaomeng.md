@@ -10,12 +10,14 @@ python lerobot/scripts/control_robot.py \
   --robot.cameras='{}' \
   --control.type=teleoperate
 
+
 python lerobot/scripts/control_robot.py \
   --robot.type=so100 \
   --control.type=teleoperate
 
 
 sudo chmod 666 /dev/tty*
+
 
 python lerobot/scripts/control_robot.py \
   --robot.type=so100 \
@@ -30,7 +32,6 @@ python lerobot/scripts/control_robot.py \
   --control.num_episodes=10 \
   --control.push_to_hub=false \
   --control.policy.path=050000/pretrained_model
-
 
 
 python lerobot/scripts/train.py \
@@ -48,7 +49,6 @@ python lerobot/scripts/train.py \
 scp -r ./so100 kc@192.168.221.162:/home/kc/workspace/lerobot/.cache/calibration
 
 
-
 # 收集数据
 python lerobot/scripts/control_robot.py \
   --robot.type=so100 \
@@ -62,9 +62,6 @@ python lerobot/scripts/control_robot.py \
   --control.reset_time_s=30 \
   --control.num_episodes=50 \
   --control.push_to_hub=false
-
-
-
 
 
 python lerobot/scripts/control_robot.py \
@@ -100,7 +97,6 @@ python lerobot/scripts/control_robot.py \
 
 scp -rP 36653 root@connect.nmb1.seetacloud.com:/root/autodl-tmp/lerobot/outputs/train/diffusion_10_large /home/xiaomeng/code/lerobot/outputs/train
 ssh -p 29506 root@connect.nmb1.seetacloud.com
-
 
 
 # Diffusion:

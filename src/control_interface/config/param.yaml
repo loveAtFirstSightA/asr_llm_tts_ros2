@@ -1,4 +1,0 @@
-control_interface:
-  ros__parameters:
-    control_type: voice
-    
