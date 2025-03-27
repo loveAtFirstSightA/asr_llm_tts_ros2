@@ -94,6 +94,7 @@ python lerobot/scripts/control_robot.py \
   --control.policy.path=outputs/train/2025-03-18/11-28-20_act/checkpoints/100000/pretrained_model
 
 
+
 scp -rP 36653 root@connect.nmb1.seetacloud.com:/root/autodl-tmp/lerobot/outputs/train/diffusion_10_large /home/xiaomeng/code/lerobot/outputs/train
 ssh -p 29506 root@connect.nmb1.seetacloud.com
 
@@ -118,12 +119,6 @@ sudo apt install usbtop
 sudo apt update$ sudo apt install cmake git libboost-dev libpcap-dev libboost-thread-dev libboost-system-dev
 sudo modprobe usbmon
 sudo usbtop
-
-
-scp -r t@192.168.221.200:/home/t/.cache/huggingface/lerobot/andy309/so100_0314_fold_cloths /home/xiaomeng/.cache/huggingface/lerobot
-
-
-ssh -p 29856 root@connect.nmb1.seetacloud.com
 
 
 python lerobot/scripts/control_robot.py \
