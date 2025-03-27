@@ -13,63 +13,89 @@ logger.add(
     format="[{time:YYYY-MM-DD HH:mm:ss.SSS}] [{level}] {message}",
     level="INFO"
 )
-logger.info("正在使用loguru日志系统")
+logger.info("Using loguru log system")
 
 sys.path.append('/home/lio/lerobot')
 # import submodules
-from lerobot.scripts.control_robot import print_msg
 from lerobot.scripts.control_robot import control_robot
-from lerobot.common.policies.factory import make_policy
-from lerobot.common.robot_devices.control_configs import ControlPipelineConfig, RecordControlConfig
+
 
 class LerobotRos2(Node):
 
     def __init__(self):
         super().__init__('lerobot_ros2')
         self.voice_command_subscriber_ = self.create_subscription(String, 'voice_command', self.voice_command_subscriber_callback, 10)
-        # define parameters
         self.declare_parameter('voice_command_list', ['12', '34'])
         self.voice_command_list_ = self.get_parameter('voice_command_list').get_parameter_value().string_array_value
         self.get_logger().info(f"Voice command list: {self.voice_command_list_}")
 
     def voice_command_subscriber_callback(self, msg):
         logger.info("Received voice_command: %s" % msg.data)
-        print_msg("hello, lerobot")
         voice_command = msg.data
         if voice_command in self.voice_command_list_:
             if voice_command == 'stack_towel':
                 self.utils_stack_towel()
-            else:
-                logger.info(f"Executing command: {voice_command}")
+            if voice_command == 'calibrate':
+                self.utils_calibrate()
         else:
             logger.warning(f"Received voice command '{voice_command}' is not in the supported list: {self.voice_command_list_}")
-
+    
     def utils_stack_towel(self):
+        """
+        python lerobot/scripts/control_robot.py \
+            --robot.type=so100 \
+            --control.type=record \
+            --control.fps=30 \
+            --control.single_task="action" \
+            --control.repo_id=./eval_actm \
+            --control.tags='["tutorial"]' \
+            --control.warmup_time_s=5 \
+            --control.episode_time_s=20 \
+            --control.reset_time_s=3 \
+            --control.num_episodes=1 \
+            --control.push_to_hub=false \
+            --control.policy.path=/home/lio/lerobot/outputs/train/act_3camera_cloth_20250317_bs10_010000_pretrained_model
+        """
         logger.info("Executing stack towel")
-        # TODO use lerobot control_robot interface
-        # control_robot()
-        try:
-            # 配置 ControlPipelineConfig 参数
-            cfg = ControlPipelineConfig(
-                robot_type='so100',
-                control_type='record',
-                fps=30,
-                single_task="Grasp a lego block and put it in the bin.",
-                repo_id='./eval_actm',
-                tags=['tutorial'],
-                warmup_time_s=5,
-                episode_time_s=20,
-                reset_time_s=3,
-                num_episodes=1,
-                push_to_hub=False,
-                policy_path='outputs/train/2025-03-18/11-28-20_act/checkpoints/040000/pretrained_model'
-            )
+        # TODO use lerobot interface
+        original_argv = sys.argv.copy()
+        sys.argv = [
+            "lerobot/scripts/control_robot.py",
+            "--robot.type=so100",
+            "--control.type=record",
+            "--control.fps=30",
+            '--control.single_task="action"',
+            "--control.repo_id=./eval_actm",
+            '--control.tags=["tutorial"]',
+            "--control.warmup_time_s=5",
+            "--control.episode_time_s=20",
+            "--control.reset_time_s=3",
+            "--control.num_episodes=1",
+            "--control.push_to_hub=false",
+            "--control.policy.path=/home/lio/lerobot/outputs/train/act_3camera_cloth_20250317_bs10_010000_pretrained_model"
+        ]
+        control_robot()
+        sys.argv = original_argv 
 
-            # 调用 control_robot 函数
-            control_robot(cfg)
 
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")        
+    def utils_calibrate(self):
+        """
+        python lerobot/scripts/control_robot.py \
+            --robot.type=so100 \
+            --control.type=calibrate
+        """
+        logger.info("Executing calibrate")
+        # TODO use lerobot interface
+        logger.info("Executing calibrate")
+        original_argv = sys.argv.copy()
+        sys.argv = [
+            "lerobot/scripts/control_robot.py",
+            "--robot.type=so100",
+            "--control.type=calibrate"
+        ]
+        control_robot()
+        sys.argv = original_argv
+
 
 def main(args=None):
     rclpy.init(args=args)
