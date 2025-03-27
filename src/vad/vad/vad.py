@@ -35,7 +35,7 @@ logger.add(
     format="[{time:YYYY-MM-DD HH:mm:ss.SSS}] [{level}] {message}",
     level="INFO"
 )
-logger.info('正在使用 loguru 日志系统')
+logger.info('Using loguru log system')
 
 class VAD(Node):
     def __init__(self):
