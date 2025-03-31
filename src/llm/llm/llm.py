@@ -28,6 +28,9 @@ from std_msgs.msg import String
 from std_msgs.msg import Int64
 import ollama
 from google import genai
+import base64
+import os
+from google.genai import types
 import json
 import time
 from loguru import logger
@@ -57,6 +60,11 @@ class LLM(Node):
         self.llm_publisher_ = self.create_publisher(String, 'text_to_tts', 10)
         self.declare_parameter('llm_type', 'llm_type')
         self.llm_type_ = self.get_parameter('llm_type').get_parameter_value().string_value
+        # get key
+        self.declare_parameter('google_gemini_key', "1234")
+        self.google_gemini_key_ = self.get_parameter('google_gemini_key').get_parameter_value().string_value
+        self.declare_parameter('baidu_qianfan_id', '1234')
+        self.baidu_qianfan_id_ = self.get_parameter('baidu_qianfan_id').get_parameter_value().string_value
         # command
         self.camera_publisher_ = self.create_publisher(String, 'camera_command', 10)
         self.arm_publisher_ = self.create_publisher(String, 'arm_command', 10)
@@ -121,7 +129,7 @@ class LLM(Node):
         # ollama 本机部署模型
         if self.llm_type_ == 'deepseek':
             LLM_result = self.chat_deepseek(asr_result)
-            
+        
         # 调用官方api接口
         elif self.llm_type_ == 'deepseek_official':
             LLM_result = self.chat_deepseek_official(asr_result)
@@ -129,10 +137,11 @@ class LLM(Node):
         # 调用丰巢本地部署接口
         elif self.llm_type_ == 'deepseek_hivebox':
             LLM_result = self.chat_deepseek_hivebox(asr_result)
-            
-        elif self.llm_type_ == 'google':
+        
+        # 速度快 挂代理
+        elif self.llm_type_ == 'google_gemini_2' or self.llm_type_ == 'google_gemini_2p5':
             LLM_result = self.chat_google_gemini(asr_result)
-            
+
         elif self.llm_type_ == 'baidu':
             LLM_result = self.chat_baidu_qianfan(asr_result)
             
@@ -275,17 +284,43 @@ class LLM(Node):
         except Exception as e:
             logger.error(f"解析 JSON 时发生错误: {e}")
             return None
-
+    
+    # 2025-03-31
     def chat_google_gemini(self, prompt='你好，你是谁？'):
         content = AGENT_SYS_PROMPT + prompt
-        client = genai.Client(api_key='AIzaSyBwvNef1hTp_ZP-JAs8an1vvCM8ZtC0kCs')
+        client = genai.Client(api_key=self.google_gemini_key_)
         logger.info('contents: %s' % content)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=content
+        # Select which type model
+        model = ""
+        if self.llm_type_ == 'google_gemini_2':
+            model = "gemini-2.0-flash"
+        if self.llm_type_ == 'google_gemini_2p5':
+            model = "gemini-2.5-pro-exp-03-25"
+        # model = "gemini-2.5-pro-exp-03-25"
+        # model = "gemini-2.0-flash"
+        contents = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(text=content),
+                ],
+            ),
+        ]
+        generate_content_config = types.GenerateContentConfig(
+            response_mime_type="text/plain",
         )
-        logger.info('gemini response: %s' % response.text)
-        return response.text
+        full_response = ""
+        for chunk in client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        ):
+            # print(chunk.text, end="")
+            full_response += chunk.text
+        logger.info('Using model gemini-2.5-pro-exp-03-25')
+        logger.info(full_response)
+        return full_response
+
 
     def chat_baidu_qianfan(self, prompt='你好，你是谁？'):
         content = AGENT_SYS_PROMPT + prompt
@@ -293,7 +328,7 @@ class LLM(Node):
             'Content-Type': 'application/json',
             'X-Appbuilder-Authorization': 'Bearer bce-v3/ALTAK-Ph5HKAos7Eie98jFnAQdx/66935b2d5d92626966e9d0b5e81c9ddaf0439ef9'
         }
-        app_id = "fd963b90-de1c-4926-8575-a86af990fba6"
+        app_id = self.baidu_qianfan_id_
 
         # 步骤 1: 调用 conversation 接口初始化会话
         conversation_url = "https://qianfan.baidubce.com/v2/app/conversation"

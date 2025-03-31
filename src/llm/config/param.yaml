@@ -1,7 +1,9 @@
 llm:
   ros__parameters:
     # deepseek || deepseek_official
-    # deepseek_hivebox || google || baidu
-    llm_type: "google"
+    # deepseek_hivebox || google_gemini_2 || google_gemini_2p5 || baidu
+    llm_type: "google_gemini_2"
     # deepseek-r1:1.5b || deepseek-r1:8b || deepseek-r1:14b
     deepseek_model: "deepseek-r1:14b"
+    google_gemini_key: "AIzaSyBwvNef1hTp_ZP-JAs8an1vvCM8ZtC0kCs"
+    baidu_qianfan_id: "fd963b90-de1c-4926-8575-a86af990fba6"
