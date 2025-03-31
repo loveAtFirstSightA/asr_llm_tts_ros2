@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/lio/miniconda3/envs/asr_llm_tts/bin/python
 # -*- coding:utf-8 -*-
 
 """
@@ -29,6 +29,10 @@ import requests
 import threading
 from loguru import logger
 from asr import ost_fast
+import numpy
+import whisper
+import wave
+import struct
 
 # 配置 loguru 输出到标准输出
 logger.remove()
@@ -46,13 +50,21 @@ class ASR(Node):
         self.asr_result_publisher_ = self.create_publisher(String, 'asr_result', 10)
 
         # 参数初始化
-        self.service_provider_ = self.declare_parameter('service_provider', 'service_provider').value
-        self.baidu_api_key_ = self.declare_parameter('baidu_api_key', 'baidu_api_key').value
-        self.baidu_secret_key_ = self.declare_parameter('baidu_secret_key', 'baidu_secret_key').value
-        self.ifly_appid_ = self.declare_parameter('ifly_appid', 'ifly_appid').value
-        self.ifly_apikey_ = self.declare_parameter('ifly_apikey', 'ifly_apikey').value
-        self.ifly_apisecret_ = self.declare_parameter('ifly_apisecret', 'ifly_apisecret').value
-
+        self.declare_parameter('function_type', "1234")
+        self.function_type_ = self.get_parameter('function_type').get_parameter_value().string_value
+        self.declare_parameter('service_provider', "1234")
+        self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
+        self.declare_parameter('baidu_api_key', "1234")
+        self.baidu_api_key_ = self.get_parameter('baidu_api_key').get_parameter_value().string_value
+        self.declare_parameter('baidu_secret_key', "1234")
+        self.baidu_secret_key_ = self.get_parameter('baidu_secret_key').get_parameter_value().string_value
+        self.declare_parameter('ifly_appid', "1234")
+        self.ifly_appid_ = self.get_parameter('ifly_appid').get_parameter_value().string_value
+        self.declare_parameter('ifly_apikey', "1234")
+        self.ifly_apikey_ = self.get_parameter('ifly_apikey').get_parameter_value().string_value
+        self.declare_parameter('ifly_apisecret', "1234")
+        self.ifly_apisecret_ = self.get_parameter('ifly_apisecret').get_parameter_value().string_value
+        
         logger.info(f"ASR node initialized with service_provider: {self.service_provider_}")
     
     def pcm_subscriber_callback(self, msg: String):
@@ -66,25 +78,73 @@ class ASR(Node):
         thread.start()
 
     def process_pcm_file(self, pcm_file_path: str):
-        logger.info("调用云端接口进行PCM文件解析")
-        try:
-            if self.service_provider_ == 'baidu':
-                result = self.baidu_speech_recognition(pcm_file_path)
-            elif self.service_provider_ == 'ifly':
-                result = self.ifly_speech_recognition(pcm_file_path)
-            else:
-                logger.error(f"未知的 service_provider: {self.service_provider_}")
-                result = None
+        result = ""
+        if self.function_type_ == "online":
+            logger.info("调用云端接口进行PCM文件解析")
+            try:
+                if self.service_provider_ == 'baidu':
+                    result = self.baidu_speech_recognition(pcm_file_path)
+                elif self.service_provider_ == 'ifly':
+                    result = self.ifly_speech_recognition(pcm_file_path)
+                else:
+                    logger.error(f"未知的 service_provider: {self.service_provider_}")
+                    result = None
 
-            if result is None:
-                logger.error("语音识别返回 None 或解析失败")
-                result = "识别失败"
-        except Exception as e:
-            logger.error(f"处理PCM文件时出现异常: {e}")
-            result = "处理异常"
+                if result is None:
+                    logger.error("语音识别返回 None 或解析失败")
+                    result = "识别失败"
+            except Exception as e:
+                logger.error(f"处理PCM文件时出现异常: {e}")
+                result = "处理异常"
+        
+        elif self.function_type_ == "offline":
+            logger.info("调用离线接口进行PCM文件解析")
+            # Convert pcm to wav
+            logger.info("Convert pcm to wav")
+            pcm_file = pcm_file_path  # 假设 pcm_file_path 已经定义并包含 PCM 文件的路径
+            wav_file = pcm_file_path.replace(".pcm", ".wav") # 或者你希望的 WAV 文件名
+            sample_rate = 16000
+            sample_width = 2
+            num_channels = 1 # 如果你的 PCM 是单声道
+
+            self.convert_pcm_to_wav(pcm_file, wav_file, sample_rate, sample_width, num_channels)
+
+            # model type tiny base small medium
+            model = whisper.load_model("medium")
+            _result = model.transcribe(wav_file)
+            logger.info("Openai-whisper result: {}", _result["text"])
+            result = _result['text']
 
         logger.info(f"完成解析: {result}")
         self.publish_result(result)
+
+    def convert_pcm_to_wav(self, pcm_file_path, wav_file_path, sample_rate, sample_width, num_channels):
+        """
+        将 PCM 文件转换为 WAV 文件。
+
+        Args:
+            pcm_file_path (str): PCM 文件的路径。
+            wav_file_path (str): 要保存的 WAV 文件的路径。
+            sample_rate (int): 采样率 (例如, 1000)。
+            sample_width (int): 每个样本的字节数 (例如, 2 代表 16-bit)。
+            num_channels (int): 音频通道数 (例如, 1 代表单声道, 2 代表立体声)。
+        """
+        try:
+            with open(pcm_file_path, 'rb') as pcm_file:
+                pcm_data = pcm_file.read()
+
+            with wave.open(wav_file_path, 'w') as wav_file:
+                wav_file.setnchannels(num_channels)
+                wav_file.setsampwidth(sample_width)
+                wav_file.setframerate(sample_rate)
+                wav_file.writeframes(pcm_data)
+
+            logger.info(f"PCM 文件 '{pcm_file_path}' 已成功转换为 WAV 文件 '{wav_file_path}'。")
+
+        except FileNotFoundError:
+            logger.error(f"文件未找到: {pcm_file_path}")
+        except Exception as e:
+            logger.error(f"转换 PCM 到 WAV 文件时发生错误: {e}")
 
     def publish_result(self, result: str):
         msg = String()

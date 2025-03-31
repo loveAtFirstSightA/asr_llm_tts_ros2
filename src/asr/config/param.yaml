@@ -1,6 +1,7 @@
 asr:
   ros__parameters:
-    service_provider: "ifly"  # baidu ifly
+    function_type: "offline"  # offline || online
+    service_provider: "ifly"  # baidu || ifly
     baidu_api_key: "yqapHe9IKnKZZdKIkvv0r7YQ"
     baidu_secret_key: "uWXoblwoT1YR5BZPoN3SUrttXfPxDm3I"
     ifly_appid: "6f20e2c2"
