@@ -1,6 +1,6 @@
 tts:
   ros__parameters:
-    model_type: "offline" # offline || online
+    model_type: "online" # offline || online
     service_provider: "baidu"  # baidu || ifly
     baidu_api_key: "yqapHe9IKnKZZdKIkvv0r7YQ"
     baidu_secret_key: "uWXoblwoT1YR5BZPoN3SUrttXfPxDm3I"

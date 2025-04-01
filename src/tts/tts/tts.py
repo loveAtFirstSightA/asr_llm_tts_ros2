@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/lio/miniconda3/envs/asr_llm_tts/bin/python
 # -*- coding:utf-8 -*-
 
 """
@@ -39,6 +39,11 @@ import ssl
 from wsgiref.handlers import format_date_time
 from time import mktime
 from loguru import logger
+import torch
+from TTS.api import TTS as coqui_tts
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import XttsAudioConfig, XttsArgs  # 导入 XttsArgs
+from TTS.config.shared_configs import BaseDatasetConfig
 
 # Configure loguru output (similar to your previous example)
 logger.remove()
@@ -184,6 +189,8 @@ class TTS(Node):
         self.input_file_subscriber_ = self.create_subscription(String, 'file_to_tts', self.input_file_subscriber_callback, 10)
         self.input_text_subscriber_ = self.create_subscription(String, 'text_to_tts', self.input_text_subscriber_callback, 10)
         
+        self.declare_parameter('model_type', '1234')
+        self.model_type_ = self.get_parameter('model_type').get_parameter_value().string_value
         self.declare_parameter('service_provider', '1234')
         self.service_provider_ = self.get_parameter('service_provider').get_parameter_value().string_value
         self.declare_parameter('baidu_api_key', '1234')
@@ -217,7 +224,8 @@ class TTS(Node):
     def input_text_subscriber_callback(self, msg):
         self.task_interrupt_ = False
         logger.info(f"Received text message: {msg.data}")
-        output_file = './output.mp3'
+        output_file = './output.wav'
+        
         # Remove existing audio file if exists
         if os.path.exists(output_file):
             try:
@@ -225,21 +233,44 @@ class TTS(Node):
                 logger.info(f"Removed existing file: {output_file}")
             except Exception as e:
                 logger.error(f"Error removing file {output_file}: {e}")
-        # Call the appropriate TTS service in a separate thread
-        if self.service_provider_.lower() == 'baidu':
-            threading.Thread(
-                target=self.baidu_text_to_speech,
-                args=(msg.data, output_file),
-                daemon=True
-            ).start()
-        elif self.service_provider_.lower() == 'ifly':
-            threading.Thread(
-                target=ifly_text_to_speech,
-                args=(self.ifly_appid_, self.ifly_api_key_, self.ifly_api_secret_, msg.data, output_file, logger), # Pass the loguru logger
-                daemon=True
-            ).start()
-        else:
-            logger.error("Invalid service provider specified.")
+                
+        # add offline tts
+        if self.model_type_ == "offline":
+            logger.info("Using offline TTS method")
+            self.coquiai_tts(msg.data)
+            
+        elif self.model_type_ == "online":
+            logger.info("Using online TTS method")
+            # Call the appropriate TTS service in a separate thread
+            if self.service_provider_.lower() == 'baidu':
+                threading.Thread(
+                    target=self.baidu_text_to_speech,
+                    args=(msg.data, output_file),
+                    daemon=True
+                ).start()
+            elif self.service_provider_.lower() == 'ifly':
+                threading.Thread(
+                    target=ifly_text_to_speech,
+                    args=(self.ifly_appid_, self.ifly_api_key_, self.ifly_api_secret_, msg.data, output_file, logger), # Pass the loguru logger
+                    daemon=True
+                ).start()
+            else:
+                logger.error("Invalid service provider specified.")
+    
+    def coquiai_tts(self, message):
+        # 显式允许 XttsConfig, XttsAudioConfig, BaseDatasetConfig 和 XttsArgs 类被加载
+        torch.serialization.add_safe_globals([XttsConfig, XttsAudioConfig, BaseDatasetConfig, XttsArgs])
+        # Get device 用GPU还是CPU
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # List available TTS models 可以看都有些啥模型名字，注意此时模型文件都没有下载
+        #print(TTS().list_models())
+        # Init TTS 初始化，传入模型名字，这个路径就得用上面list里的路径，然后下载链接在python安装路径的TTS目录下，这个文件里写的.models.json
+        tts = coqui_tts("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+
+        # Run TTS运行，必须设置语言
+        # Text to speech to a file 这是输出到文件了。
+        tts.tts_to_file(text=message, speaker_wav="./speaker.wav", language="zh-cn", file_path="output.wav")
+        self.play_audio_async("output.wav")
 
     def baidu_text_to_speech(self, text, output_file):
         logger.info(f"Baidu TTS processing text: {text}")
@@ -259,7 +290,7 @@ class TTS(Node):
                 'pit': 5,
                 'vol': 5,
                 'per': 4100,
-                'aue': 3  # 3 - mp3 6 - wav
+                'aue': 6  # 3 - mp3 6 - wav
             }
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
