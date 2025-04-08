@@ -65,6 +65,8 @@ class LLM(Node):
         self.google_gemini_key_ = self.get_parameter('google_gemini_key').get_parameter_value().string_value
         self.declare_parameter('baidu_qianfan_id', '1234')
         self.baidu_qianfan_id_ = self.get_parameter('baidu_qianfan_id').get_parameter_value().string_value
+        self.declare_parameter('deepseek_offical_key', "1234")
+        self.deepseek_offical_key_ = self.get_parameter('deepseek_offical_key').get_parameter_value().string_value
         # command
         self.camera_publisher_ = self.create_publisher(String, 'camera_command', 10)
         self.arm_publisher_ = self.create_publisher(String, 'arm_command', 10)
@@ -221,7 +223,7 @@ class LLM(Node):
         logger.info("当前模型类型是： deepseek_official")
         content = AGENT_SYS_PROMPT + prompt
         logger.info('contents: %s' % content)
-        client = OpenAI(api_key="sk-3c928ce7ca3645a68f0c91f734682460", base_url="https://api.deepseek.com")
+        client = OpenAI(api_key=self.deepseek_offical_key_, base_url="https://api.deepseek.com")
         messages = [{"role": "system", "content": AGENT_SYS_PROMPT},
                     {"role": "user", "content": prompt}]
         response = client.chat.completions.create(

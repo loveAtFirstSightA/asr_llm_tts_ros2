@@ -7,3 +7,5 @@ llm:
     deepseek_model: "deepseek-r1:14b"
     google_gemini_key: "AIzaSyBwvNef1hTp_ZP-JAs8an1vvCM8ZtC0kCs"
     baidu_qianfan_id: "fd963b90-de1c-4926-8575-a86af990fba6"
+    deepseek_offical_key: "sk-3c928ce7ca3645a68f0c91f734682460"
+    
